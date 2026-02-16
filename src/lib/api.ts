@@ -341,9 +341,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @secure
      */
     updateUserInfo: (
-      query: {
-        user: UserManagerDTO;
-      },
+      query: UserManagerDTO,
       params: RequestParams = {}
     ) =>
       this.request<JsonResult, any>({

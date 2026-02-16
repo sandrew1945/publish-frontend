@@ -5,6 +5,7 @@ export interface MenuItem {
   href: string;
   icon: LucideIcon;
   roles?: string[]; // 'ADMIN', 'EDITOR', 'USER'
+  items?: MenuItem[]; // Nested items
 }
 
 export const menuItems: MenuItem[] = [
@@ -15,21 +16,23 @@ export const menuItems: MenuItem[] = [
     roles: ['ADMIN', 'EDITOR', 'USER'],
   },
   {
-    title: 'User Management',
-    href: '/users',
-    icon: Users,
-    roles: ['ADMIN'],
-  },
-  {
-    title: 'My Profile',
-    href: '/profile',
-    icon: User,
-    roles: ['ADMIN', 'EDITOR', 'USER'],
-  },
-  {
-    title: 'Settings',
-    href: '/settings',
+    title: 'System',
+    href: '/system',
     icon: Settings,
     roles: ['ADMIN'],
+    items: [
+      {
+        title: 'User Management',
+        href: '/system/user-management',
+        icon: Users,
+        roles: ['ADMIN'],
+      },
+      {
+        title: 'Settings',
+        href: '/settings',
+        icon: Settings,
+        roles: ['ADMIN'],
+      },
+    ],
   },
 ];

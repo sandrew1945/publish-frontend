@@ -1,6 +1,7 @@
 'use client';
 
-import { Search, Bell } from 'lucide-react';
+import { Search, Bell, PanelLeft } from 'lucide-react';
+import { useSidebar } from '@/lib/sidebar-context';
 
 interface HeaderProps {
   /** Breadcrumb segments, e.g. ["Home", "Dashboard"] */
@@ -8,8 +9,19 @@ interface HeaderProps {
 }
 
 export function Header({ breadcrumbs = ['Home', 'Dashboard'] }: HeaderProps) {
+  const { toggleCollapse } = useSidebar();
+
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-white/[0.06] bg-card/80 backdrop-blur-md px-6">
+      {/* Desktop Sidebar Toggle */}
+      <button
+        onClick={toggleCollapse}
+        className="hidden md:flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors"
+        aria-label="Toggle Sidebar"
+      >
+        <PanelLeft className="h-5 w-5" />
+      </button>
+
       {/* Breadcrumbs */}
       <nav className="flex items-center text-sm text-muted-foreground">
         {breadcrumbs.map((crumb, index) => (

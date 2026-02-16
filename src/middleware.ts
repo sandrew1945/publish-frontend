@@ -2,13 +2,22 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // In a real app, you would check for the session ID in cookies
-  // const sid = request.cookies.get('sid')?.value
+  // Check for the session ID in cookies (HttpOnly or not, middleware can read it)
+  const sid = request.cookies.get('sid')?.value;
+  const { pathname } = request.nextUrl;
 
-  // For now, we'll just allow access or implement basic redirection if needed
-  // if (!sid && request.nextUrl.pathname.startsWith('/dashboard')) {
-  //   return NextResponse.redirect(new URL('/login', request.url))
-  // }
+  // Paths that are always public (in addition to the matcher exclusions)
+  const publicPaths = ['/login', '/'];
+
+  // If user is NOT logged in and tries to access a protected route
+  if (!sid && !publicPaths.includes(pathname)) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  // If user IS logged in and tries to access login page
+  if (sid && pathname === '/login') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
 
   return NextResponse.next();
 }

@@ -13,8 +13,12 @@ export const metadata: Metadata = {
 };
 
 import { ReactQueryProvider } from '@/lib/react-query-provider';
+import { AuthProvider } from '@/lib/auth-context';
 
 // ...
+
+import { GlobalLoadingProvider } from '@/providers/global-loading-provider';
+import NextTopLoader from 'nextjs-toploader';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -27,14 +31,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         )}
       >
         <ReactQueryProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem
-            disableTransitionOnChange
-          >
-            {children}
-          </ThemeProvider>
+          <AuthProvider>
+            <NextTopLoader
+              color="#2299DD"
+              initialPosition={0.08}
+              crawlSpeed={200}
+              height={3}
+              crawl={true}
+              showSpinner={false}
+              easing="ease"
+              speed={200}
+              shadow="0 0 10px #2299DD,0 0 5px #2299DD"
+            />
+            <GlobalLoadingProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="dark"
+                enableSystem
+                disableTransitionOnChange
+              >
+                {children}
+              </ThemeProvider>
+            </GlobalLoadingProvider>
+          </AuthProvider>
         </ReactQueryProvider>
       </body>
     </html>
