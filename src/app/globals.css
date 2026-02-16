@@ -2,26 +2,133 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
+  /* Dark-first: :root IS the dark theme */
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+    /* 3-level surface system */
+    --background: 222 47% 6%;
+    --foreground: 210 40% 96%;
+
+    --card: 220 40% 10%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 218 35% 14%;
+    --popover-foreground: 210 40% 96%;
+
+    /* Accent / interactive */
+    --primary: 210 100% 52%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 30% 16%;
+    --secondary-foreground: 210 40% 90%;
+
+    --muted: 220 25% 14%;
+    --muted-foreground: 215 20% 60%;
+
+    --accent: 220 30% 16%;
+    --accent-foreground: 210 40% 96%;
+
+    /* Semantic colors */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    /* Borders & inputs */
+    --border: 220 20% 18%;
+    --input: 220 20% 18%;
+    --ring: 210 100% 52%;
+
+    --radius: 0.75rem;
+    --font-heading: 'Outfit', sans-serif;
+  }
+
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 210 100% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 30% 95%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 30% 95%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 210 30% 95%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 210 100% 45%;
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* Glassmorphism card effect */
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-sm border border-white/[0.06] rounded-xl;
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300;
+  }
+
+  .glass-card-hover:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 0 20px rgba(59, 130, 246, 0.06),
+      0 8px 32px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+  }
+
+  /* Gradient accent for active sidebar */
+  .gradient-active {
+    background: linear-gradient(135deg, hsl(210 100% 52%) 0%, hsl(185 80% 50%) 100%);
+  }
+
+  /* Subtle glow */
+  .glow-sm {
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
+  }
+
+  .glow-md {
+    box-shadow: 0 0 24px rgba(59, 130, 246, 0.2);
+  }
 }

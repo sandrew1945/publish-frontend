@@ -1,0 +1,17 @@
+
+- [x] 1.1 Update `globals.css` with dark-first color palette (3-level surfaces, accent colors, gradients)
+- [x] 1.2 Update `tailwind.config.ts` with new color tokens and gradient utilities
+- [x] 1.3 Ensure light mode fallback still works
+- [x] 2.1 Redesign `sidebar.tsx` with gradient active state, branding header, user avatar footer
+- [x] 2.2 Create `header.tsx` component with breadcrumbs, search input, notification icon
+- [x] 2.3 Update `dashboard-layout.tsx` to compose sidebar + header + content area
+- [x] 2.4 Add mobile responsive hamburger toggle for sidebar
+- [x] 3.1 Create `stat-card.tsx` component (icon badge, number, trend arrow)
+- [x] 3.2 Create `activity-feed.tsx` component (event list with icons and timestamps)
+- [x] 3.3 Create `system-health.tsx` component (service status bars + latency)
+- [x] 3.4 Redesign `(dashboard)/dashboard/page.tsx` to compose all panels with grid layout
+- [x] 3.5 Add Framer Motion staggered entrance animations
+- [x] 4.1 Redesign `app/page.tsx` with gradient hero text, animated CTA, dark background
+- [x] 5.1 Build passes (`npm run build`)
+- [x] 5.2 Lint passes (`npm run lint`)
+- [x] 5.3 Visual check in browser (dark mode, light mode, responsive)

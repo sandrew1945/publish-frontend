@@ -1,4 +1,5 @@
 <!-- Use this as the structure for your output file. Fill in the sections. -->
+
 ## Why
 
 The current workspace requires a modern front-end application to interact with the existing `vibe-publish-backend` service. We need to establish a solid foundation using React and Next.js that adheres to modern front-end standards, ensuring scalability, maintainability, and a premium user experience.
@@ -7,6 +8,7 @@ The current workspace requires a modern front-end application to interact with t
 
 We will initialize a new Next.js application within the current directory.
 Key changes include:
+
 - Initialize a Next.js project with TypeScript.
 - Configure a modern styling system (Tailwind CSS) with a focus on aesthetic excellence (responsive, dark mode support, smooth animations).
 - Set up a robust project structure (components, pages, hooks, services).
