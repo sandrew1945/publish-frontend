@@ -39,6 +39,7 @@ export function UserTable({ users, isLoading, onEdit, onDelete }: UserTableProps
               <th className="px-4 py-3 w-[80px]">Sex</th>
               <th className="px-4 py-3">Phone / Mobile</th>
               <th className="px-4 py-3">Email</th>
+              <th className="px-4 py-3">Roles</th>
               <th className="px-4 py-3 w-[140px]">Status</th>
               <th className="px-4 py-3 w-[120px] text-right">Actions</th>
             </tr>
@@ -58,6 +59,31 @@ export function UserTable({ users, isLoading, onEdit, onDelete }: UserTableProps
                   </div>
                 </td>
                 <td className="px-4 py-3 text-neutral-300">{user.email || '-'}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-1">
+                    {user.roleName ? (
+                      user.roleName.split(',').map((name, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 whitespace-nowrap"
+                        >
+                          {name.trim()}
+                        </span>
+                      ))
+                    ) : user.roleList && user.roleList.length > 0 ? (
+                      user.roleList.map((role) => (
+                        <span
+                          key={role.roleId}
+                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 whitespace-nowrap"
+                        >
+                          {role.roleName}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-neutral-500">-</span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-4 py-3">
                   <UserStatusBadge status={user.userStatus} />
                 </td>

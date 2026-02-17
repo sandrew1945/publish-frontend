@@ -1,7 +1,16 @@
 import { backendApi } from '@/lib/api-client';
 import { UserManagerDTO, JsonResult } from '@/lib/api';
 
-export type User = UserManagerDTO;
+export interface Role {
+  roleId: number;
+  roleName: string;
+  roleCode?: string;
+}
+
+export type User = UserManagerDTO & {
+  roleList?: Role[];
+  roleName?: string;
+};
 
 export interface UserFilter {
   userCode?: string;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { authService } from './auth-service';
 import { AuthState, AuthUser, LoginCredentials } from '@/types/auth';
@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     error: null,
   });
 
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const user = await authService.getCurrentUser();
 
@@ -52,11 +52,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       setState((prev) => ({ ...prev, isLoading: false }));
     }
-  };
+  }, [pathname]);
 
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
 
   const login = async (credentials: LoginCredentials) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));

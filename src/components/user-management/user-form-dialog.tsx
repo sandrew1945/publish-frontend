@@ -3,7 +3,13 @@ import { X, Loader2 } from 'lucide-react';
 import { User } from '@/services/user-management-service';
 import { Input } from '@/components/input';
 import { Button } from '@/components/button';
-import { SystemCodeTypes, SystemStatus, SystemSex, SystemEmployeeStatus, getCodesByType } from '@/config/fixcode';
+import {
+  SystemCodeTypes,
+  SystemStatus,
+  SystemSex,
+  SystemEmployeeStatus,
+  getCodesByType,
+} from '@/config/fixcode';
 import { useValidateUserCode } from '@/hooks/use-user-management';
 
 interface UserFormDialogProps {
@@ -235,12 +241,18 @@ export function UserFormDialog({
                   setFormData({ ...formData, password: e.target.value });
                   setErrors({ ...errors, password: '' });
                 }}
-                placeholder={mode === 'create' ? 'Enter initial password' : 'Leave empty to keep current password'}
+                placeholder={
+                  mode === 'create'
+                    ? 'Enter initial password'
+                    : 'Leave empty to keep current password'
+                }
                 className={errors.password ? 'border-red-500/50' : ''}
               />
               {errors.password && <p className="text-xs text-red-400">{errors.password}</p>}
               {mode === 'edit' && (
-                <p className="text-xs text-neutral-500">Leave empty if you don't want to change the password</p>
+                <p className="text-xs text-neutral-500">
+                  Leave empty if you don&apos;t want to change the password
+                </p>
               )}
             </div>
           </form>

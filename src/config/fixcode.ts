@@ -46,9 +46,7 @@ export const SystemEmployeeStatus = {
 
 export function getCodeDesc(typeCode: number, value: number | string): string {
   // Try to find exact match first (standard use case)
-  const exactMatch = SYSTEM_CODES.find(
-    (item) => item.type_code === typeCode && item.code == value
-  );
+  const exactMatch = SYSTEM_CODES.find((item) => item.type_code === typeCode && item.code == value);
   if (exactMatch) return exactMatch.code_desc;
 
   // Fallback: sometimes values might be passed as simple 0/1 integers instead of full codes
