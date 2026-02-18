@@ -1,4 +1,3 @@
-
 - [x] 1.1 Update `globals.css` with dark-first color palette (3-level surfaces, accent colors, gradients)
 - [x] 1.2 Update `tailwind.config.ts` with new color tokens and gradient utilities
 - [x] 1.3 Ensure light mode fallback still works

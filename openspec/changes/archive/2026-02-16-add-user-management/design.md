@@ -7,6 +7,7 @@ Currently there is no page or route that renders User Management UI — only the
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Build a User Management page at `/system/user-management` with a paginated, filterable data table.
 - Provide modal dialogs for Create, Edit, and Delete operations.
 - Reuse the auto-generated `Api` class (`api.usermanager.*`) — no duplicate HTTP calls.
@@ -14,6 +15,7 @@ Currently there is no page or route that renders User Management UI — only the
 - Follow the existing design system (dark theme, glassmorphism cards, design tokens).
 
 **Non-Goals:**
+
 - Role assignment UI (assign/remove roles from a user) — separate change.
 - Password management UI — separate change.
 - Modifying the backend API contracts.
@@ -28,6 +30,7 @@ Currently there is no page or route that renders User Management UI — only the
 **Why:** `system` sits at the same level as `dashboard` inside the `(dashboard)` layout group — this is reasonable because "System Management" is a top-level navigation section, not a child of Dashboard. The `(dashboard)` group provides the shared shell (sidebar, header) without adding a URL segment. Future sibling pages (Role Management, Menu Management) go under `system/` as well.
 
 **Alternatives considered:**
+
 - `/dashboard/system/user-management` — nests system under dashboard, which misrepresents the hierarchy since System Management is a peer section.
 
 ### 2. API integration layer
@@ -37,11 +40,13 @@ Currently there is no page or route that renders User Management UI — only the
 **Why:** The auto-generated `Api` class is verbose and its response types use `JsonResult` with `data: object`. The service layer casts responses to concrete types, centralizes error handling, and keeps page components free of API plumbing.
 
 **Alternatives considered:**
+
 - Call `api.usermanager.*` directly from hooks — coupling hooks to generated API shape makes refactoring harder.
 
 ### 3. State management with React Query
 
 **Decision:** Create custom hooks in `src/hooks/use-user-management.ts`:
+
 - `useUserList(filters, pagination)` — paginated query with `keepPreviousData`.
 - `useUserDetail(userId)` — single user fetch.
 - `useCreateUser()` — mutation with cache invalidation on user list.
@@ -55,18 +60,19 @@ Currently there is no page or route that renders User Management UI — only the
 
 **Decision:** Build feature-specific components under `src/components/user-management/`:
 
-| Component | Purpose |
-|-----------|---------|
-| `user-list-page.tsx` | Main page orchestrator — filters bar, table, pagination, dialogs |
-| `user-table.tsx` | Table rendering with columns: code, name, phone, email, status, actions |
-| `user-filter-bar.tsx` | Search inputs for code/name and status dropdown |
-| `user-form-dialog.tsx` | Shared modal form for Create and Edit (mode prop) |
-| `user-delete-dialog.tsx` | Confirmation dialog for soft-delete |
-| `user-status-badge.tsx` | Status indicator (Active/Inactive) |
+| Component                | Purpose                                                                 |
+| ------------------------ | ----------------------------------------------------------------------- |
+| `user-list-page.tsx`     | Main page orchestrator — filters bar, table, pagination, dialogs        |
+| `user-table.tsx`         | Table rendering with columns: code, name, phone, email, status, actions |
+| `user-filter-bar.tsx`    | Search inputs for code/name and status dropdown                         |
+| `user-form-dialog.tsx`   | Shared modal form for Create and Edit (mode prop)                       |
+| `user-delete-dialog.tsx` | Confirmation dialog for soft-delete                                     |
+| `user-status-badge.tsx`  | Status indicator (Active/Inactive)                                      |
 
 **Why:** Small, focused files (200–400 lines each) aligned with the project coding rules. The form dialog is shared between create and edit since the fields are identical.
 
 **Alternatives considered:**
+
 - Single monolithic page component — violates the small-file rule and hurts readability.
 - Separate create and edit forms — too much duplication; the only difference is whether `userId` exists.
 
@@ -77,6 +83,7 @@ Currently there is no page or route that renders User Management UI — only the
 **Why:** The user list is straightforward (< 10 columns, server-side pagination). A library like TanStack Table adds unnecessary complexity at this stage. The table cells are simple text/badges — no complex rendering.
 
 **Alternatives considered:**
+
 - TanStack Table — overkill for a simple paginated list; adds a dependency.
 
 ### 6. Form validation
@@ -91,15 +98,15 @@ Currently there is no page or route that renders User Management UI — only the
 
 Dictionary entries:
 
-| Code | Type | Type Desc | Code Desc |
-|------|------|-----------|-----------|
-| 10011001 | 1001 | 状态 (Status) | 有效 (Active) |
+| Code     | Type | Type Desc     | Code Desc       |
+| -------- | ---- | ------------- | --------------- |
+| 10011001 | 1001 | 状态 (Status) | 有效 (Active)   |
 | 10011002 | 1001 | 状态 (Status) | 无效 (Inactive) |
-| 10021001 | 1002 | 性别 (Sex) | 男 (Male) |
-| 10021002 | 1002 | 性别 (Sex) | 女 (Female) |
-| 10021003 | 1002 | 性别 (Sex) | 未知 (Unknown) |
-| 10031001 | 1003 | 是否 (Yes/No) | 是 (Yes) |
-| 10031002 | 1003 | 是否 (Yes/No) | 否 (No) |
+| 10021001 | 1002 | 性别 (Sex)    | 男 (Male)       |
+| 10021002 | 1002 | 性别 (Sex)    | 女 (Female)     |
+| 10021003 | 1002 | 性别 (Sex)    | 未知 (Unknown)  |
+| 10031001 | 1003 | 是否 (Yes/No) | 是 (Yes)        |
+| 10031002 | 1003 | 是否 (Yes/No) | 否 (No)         |
 
 The file exports a `getCodeDesc(typeCode, value)` helper that returns the display label for a given type and value. Components like `user-status-badge.tsx` and the filter bar use this helper instead of inline mappings.
 

@@ -7,6 +7,7 @@ Users currently lack visual feedback during data fetching or long-running operat
 ## What Changes
 
 We will introduce a global loading system that:
+
 1.  Displays a semi-transparent overlay to block user interaction during critical operations.
 2.  Shows a progress bar (nprogress style) at the top of the page for route transitions and data loading.
 3.  Intercepts navigation and button clicks to trigger the loading state where appropriate.

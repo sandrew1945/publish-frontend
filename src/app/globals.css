@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-
   /* Dark-first: :root IS the dark theme */
   :root {
     /* 3-level surface system */
@@ -133,7 +132,6 @@
 }
 
 @layer utilities {
-
   /* Glassmorphism card effect */
   .glass-card {
     @apply bg-card/80 backdrop-blur-sm border border-white/[0.06] rounded-xl;
@@ -182,7 +180,7 @@
   }
 
   .sidebar-resize-handle:hover,
-  .sidebar-resize-handle[data-resizing="true"] {
+  .sidebar-resize-handle[data-resizing='true'] {
     @apply bg-primary/50;
   }
 

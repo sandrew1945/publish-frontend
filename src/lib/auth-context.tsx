@@ -78,9 +78,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           authService.setSession(token);
         }
 
-        // Fetch full user details
-        await checkAuth();
-        router.push('/dashboard');
+        // Fetch full user details to check roles
+        const user = await authService.getCurrentUser();
+
+        if (user) {
+          setState({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+
+          // Check roles and redirect
+          const roles = user.roleList || [];
+
+          if (roles.length === 0) {
+            // No roles - unauthorized
+            router.push('/401');
+          } else if (roles.length === 1) {
+            // Single role - auto select
+            // We need to call setCurrentlyRole to ensure backend session is set
+            // although sometimes default is set, explicit is better
+            const role = roles[0];
+            // @ts-ignore - role definition might differ slightly, but we need roleId
+            if (role.roleId) {
+              // @ts-ignore
+              await authService.setCurrentlyRole({ roleId: role.roleId });
+            }
+            router.push('/dashboard');
+          } else {
+            // Multiple roles - let user select
+            router.push('/role-selection');
+          }
+        } else {
+          // Should not happen if login success
+          throw new Error('Failed to retrieve user details');
+        }
       } else {
         setState((prev) => ({
           ...prev,

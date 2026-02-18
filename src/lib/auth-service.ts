@@ -153,9 +153,45 @@ export const authService = {
 
       if (response.data) {
         // Map AclUserBean to AuthUser
-        // AclUserBean has: userId, userCode, userName, roleName, roleCode, token, etc.
         const aclUser = response.data;
         if (!aclUser.userId) return null; // Invalid user
+
+        // Fetch full user info to get the role list (getLoginUser might not have it)
+        let roleList: any[] = aclUser.roleList || [];
+
+        try {
+          const userInfoRes = await api.userInfo.userInfo();
+          if (userInfoRes.data && userInfoRes.data.result) {
+            const fullInfo = userInfoRes.data.data as any;
+            if (fullInfo && Array.isArray(fullInfo.roleList)) {
+              roleList = fullInfo.roleList;
+            }
+          }
+        } catch (e) {
+          console.error('Failed to fetch full user info', e);
+        }
+
+        // If no role is selected, try to select the first one automatically
+        if (!aclUser.roleId) {
+          try {
+            // We already fetched userInfo above, no need to fetch again if we did properly
+            // But let's reuse the roleList we just got
+            if (roleList.length > 0) {
+              const defaultRole = roleList[0];
+              // Assuming defaultRole has roleId
+              if (defaultRole.roleId) {
+                await api.setCurrentlyRole.setCurrentlyRole({ roleId: defaultRole.roleId });
+
+                // Update local aclUser with the selected role
+                aclUser.roleId = defaultRole.roleId;
+                aclUser.roleName = defaultRole.roleName;
+                aclUser.roleCode = defaultRole.roleCode;
+              }
+            }
+          } catch (e) {
+            console.error('Failed to auto-select role', e);
+          }
+        }
 
         return {
           userId: aclUser.userId || 0,
@@ -163,8 +199,10 @@ export const authService = {
           userName: aclUser.userName || '',
           roleName: aclUser.roleName,
           roleCode: aclUser.roleCode,
+          roleId: aclUser.roleId,
           token: aclUser.token,
           avatarPath: aclUser.avatarPath,
+          roleList: roleList,
         };
       }
       return null;
@@ -175,17 +213,24 @@ export const authService = {
   },
 
   /**
-   * Validate if current session is valid
+   * Set the current role for the user
    */
-  async validateToken(): Promise<boolean> {
+  async setCurrentlyRole(query: { roleId: number }): Promise<LoginResponse> {
     try {
-      const sid = typeof window !== 'undefined' ? localStorage.getItem('sid') : null;
-      if (!sid) return false;
-
-      const response = await api.validateToken.validateToken({ token: sid });
-      return !!(response.data && response.data.result);
-    } catch (error) {
-      return false;
+      const response = await api.setCurrentlyRole.setCurrentlyRole(query);
+      const data = response.data;
+      return {
+        result: data?.result || false,
+        msg: data?.msg || '',
+        data: data?.data || {},
+      };
+    } catch (error: any) {
+      console.error('Set role error:', error);
+      return {
+        result: false,
+        msg: error.message || 'Failed to set role',
+        data: null,
+      };
     }
   },
 };

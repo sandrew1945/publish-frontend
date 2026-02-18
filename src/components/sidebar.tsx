@@ -1,13 +1,14 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { menuItems } from '@/config/menu';
-import { LogOut, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { LogOut, ChevronsLeft, ChevronsRight, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useSidebar } from '@/lib/sidebar-context';
 import { SidebarItem } from './sidebar-item';
+import { useUserMenu } from '@/hooks/use-menu';
+import { mapTreeNodeToMenuItem } from '@/lib/menu-utils';
+import { useMemo } from 'react';
 
 const APP_VERSION = 'v1.0.0';
 
@@ -15,6 +16,15 @@ export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { isCollapsed, toggleCollapse } = useSidebar();
+
+  // Fetch menu based on user role
+  const { data: menuTree, isLoading } = useUserMenu(user?.roleId);
+
+  // Map backend tree to MenuItem[]
+  const menuItems = useMemo(() => {
+    if (!menuTree) return [];
+    return menuTree.map(mapTreeNodeToMenuItem);
+  }, [menuTree]);
 
   // Get user initials
   const getInitials = (name: string) => {
@@ -58,17 +68,33 @@ export function Sidebar({ className }: { className?: string }) {
 
       {/* Navigation */}
       <nav className={cn('flex-1 py-4 space-y-1', isCollapsed ? 'px-2' : 'px-3')}>
-        {menuItems.map((item) => (
-          <SidebarItem
-            key={item.href}
-            item={item}
-            isCollapsed={isCollapsed}
-            userRole={user?.roleCode}
-          />
-        ))}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          menuItems.map((item) => (
+            <SidebarItem
+              key={item.id || item.href}
+              item={item}
+              isCollapsed={isCollapsed}
+              userRole={user?.roleCode}
+            />
+          ))
+        )}
+        {!isLoading && menuItems.length === 0 && (
+          <div
+            className={cn(
+              'text-xs text-muted-foreground text-center py-4',
+              isCollapsed && 'hidden'
+            )}
+          >
+            No menu items found.
+          </div>
+        )}
       </nav>
 
-      {/* Toggle Button (Desktop only usually, but good to have) */}
+      {/* Toggle Button */}
       <div className={cn('px-3 py-2', isCollapsed ? 'flex justify-center' : 'flex justify-end')}>
         <button
           onClick={toggleCollapse}

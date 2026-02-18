@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function UserManagementPage() {
   return (
-    <div className="p-6">
+    <div className="h-full w-full">
       <UserListPage />
     </div>
   );

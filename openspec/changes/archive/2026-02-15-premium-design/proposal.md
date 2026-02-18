@@ -15,11 +15,13 @@ The current UI uses bare-minimum Tailwind defaults — flat colors, no depth, no
 ## Capabilities
 
 ### New Capabilities
+
 - `premium-theme`: Dark-first color system with layered surfaces, gradient accents, and glassmorphism effects
 - `dashboard-ui`: Rich dashboard layout with stats cards, charts placeholder, activity feed, and system health panel
 - `app-shell`: Header with breadcrumbs/search, redesigned sidebar with branding and avatar, responsive shell
 
 ### Modified Capabilities
+
 - `design-system`: Color tokens updated to dark-first palette; new CSS variables for surface layers, gradients, and glow effects
 
 ## Impact

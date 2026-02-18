@@ -7,6 +7,7 @@ Current User Management system displays users but lacks role management directly
 ## Goals
 
 ### User Experience
+
 - Open a modal/dialog from the User List to manage roles.
 - Load current roles on dialog open.
 - Allow selecting new roles from a dropdown.
@@ -14,6 +15,7 @@ Current User Management system displays users but lacks role management directly
 - Reflect changes immediately or upon successful API response.
 
 ### Technical Implementation
+
 - Reuse existing API client structure.
 - Interact with `UserController` endpoints: `/queryRelationRoles`, `/deleteRoleRelation`, `/queryUnRelationRoles`.
 - Prioritize clean separation of concerns (UI vs Data fetching).
@@ -26,14 +28,18 @@ Current User Management system displays users but lacks role management directly
 ## Decisions
 
 ### Component Structure
+
 We will create a specific `MaintainRoleDialog` component rather than adding complexity to `UserFormDialog` (which is for valid user creation/edition).
+
 - **`MaintainRoleDialog`**: Handles the logic for fetching and updating roles.
 - **`UserTable`**: Adds the trigger button.
 
 ### State Management
+
 State will be managed locally within `MaintainRoleDialog` using React `useState` and `useEffect` (or `useQuery`/`useMutation` if TanStack Query is available/preferred in the project). Given `user-management-service.ts` exists, we'll extend it.
 
 ### Error Handling
+
 Standard try-catch blocks with toast notifications for success/failure feedback.
 
 ## Risks / Trade-offs

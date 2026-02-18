@@ -15,9 +15,11 @@ The system currently has no frontend interface for managing users. Admins need t
 ## Capabilities
 
 ### New Capabilities
+
 - `user-management`: Full user CRUD UI — list with pagination & filters, create/edit/delete operations, detail view, user code validation. Integrates with the existing `/usermanager/*` backend endpoints.
 
 ### Modified Capabilities
+
 - `api-client`: Add typed API functions for user management endpoints (page query, create, update, delete, get by ID, validate code).
 
 ## Impact

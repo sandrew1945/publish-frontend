@@ -40,8 +40,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser.
 1.  **Login**: User enters credentials on `/login`.
 2.  **Auth Service**: `auth-service.ts` calls the backend API using `api.ts`.
 3.  **Session Storage**:
-    *   **Cookie (`sid`)**: Used by Next.js Middleware (`middleware.ts`) for server-side route protection.
-    *   **LocalStorage (`sid`)**: Used by Axios (`api-client.ts`) for client-side API requests.
+    - **Cookie (`sid`)**: Used by Next.js Middleware (`middleware.ts`) for server-side route protection.
+    - **LocalStorage (`sid`)**: Used by Axios (`api-client.ts`) for client-side API requests.
 4.  **Route Protection**: Middleware intercepts requests to protected routes (e.g., `/dashboard/*`) and redirects unauthenticated users to `/login`.
 5.  **Context**: `AuthContext` provides global user state and handles session validation on app load.
 

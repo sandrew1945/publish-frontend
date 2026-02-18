@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, Outfit } from 'next/font/google';
+import { Toaster } from 'sonner';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { cn } from '@/lib/utils';
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 disableTransitionOnChange
               >
                 {children}
+                <Toaster position="top-center" richColors />
               </ThemeProvider>
             </GlobalLoadingProvider>
           </AuthProvider>

@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { MenuItem } from '@/config/menu';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, type LucideIcon } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ElementType } from 'react';
 
 interface SidebarItemProps {
   item: MenuItem;
@@ -21,6 +21,10 @@ export function SidebarItem({ item, isCollapsed, userRole, depth = 0 }: SidebarI
   const hasChildren = item.items && item.items.length > 0;
   const isActive = pathname === item.href;
   const isChildActive = hasChildren && item.items?.some((child) => pathname === child.href);
+
+  // Resolve icon: only render if it's a valid component (not a string or undefined)
+  const IconComponent: ElementType | null =
+    item.icon && typeof item.icon !== 'string' ? (item.icon as LucideIcon) : null;
 
   // Auto-expand if child is active
   useEffect(() => {
@@ -55,7 +59,7 @@ export function SidebarItem({ item, isCollapsed, userRole, depth = 0 }: SidebarI
             )}
             title={isCollapsed ? item.title : undefined}
           >
-            <item.icon className="h-[18px] w-[18px] shrink-0" />
+            {IconComponent && <IconComponent className="h-[18px] w-[18px] shrink-0" />}
             {!isCollapsed && (
               <>
                 <span className="flex-1 overflow-hidden whitespace-nowrap">{item.title}</span>
@@ -100,7 +104,7 @@ export function SidebarItem({ item, isCollapsed, userRole, depth = 0 }: SidebarI
           : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.04]'
       )}
     >
-      <item.icon className="h-[18px] w-[18px] shrink-0" />
+      {IconComponent && <IconComponent className="h-[18px] w-[18px] shrink-0" />}
       {!isCollapsed && <span className="overflow-hidden whitespace-nowrap">{item.title}</span>}
     </Link>
   );

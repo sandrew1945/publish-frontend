@@ -1,11 +1,14 @@
-import { type LucideIcon, LayoutDashboard, Settings, User, Users } from 'lucide-react';
+import { type LucideIcon, LayoutDashboard, Settings, User, Users, ShieldCheck } from 'lucide-react';
 
 export interface MenuItem {
+  id?: string;
   title: string;
   href: string;
-  icon: LucideIcon;
+  icon?: string | LucideIcon;
   roles?: string[]; // 'ADMIN', 'EDITOR', 'USER'
   items?: MenuItem[]; // Nested items
+  parentId?: string;
+  order?: number;
 }
 
 export const menuItems: MenuItem[] = [
@@ -24,7 +27,13 @@ export const menuItems: MenuItem[] = [
       {
         title: 'User Management',
         href: '/system/user-management',
-        icon: Users,
+        icon: User,
+        roles: ['ADMIN'],
+      },
+      {
+        title: 'Role Management',
+        href: '/system/role-management',
+        icon: ShieldCheck,
         roles: ['ADMIN'],
       },
       {
