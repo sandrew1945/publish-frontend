@@ -7,6 +7,7 @@ import { UserFilterBar } from './user-filter-bar';
 import { UserTable } from './user-table';
 import { UserFormDialog } from './user-form-dialog';
 import { UserDeleteDialog } from './user-delete-dialog';
+import { MaintainRoleDialog } from './maintain-role-dialog';
 import {
   useUserList,
   useCreateUser,
@@ -29,6 +30,8 @@ export function UserListPage() {
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | undefined>(undefined);
+
+  const [isMaintainRoleOpen, setIsMaintainRoleOpen] = useState(false);
 
   // Global Loading
   const { startLoading, stopLoading } = useGlobalLoading();
@@ -67,6 +70,11 @@ export function UserListPage() {
   const handleDeleteClick = (user: User) => {
     setUserToDelete(user);
     setIsDeleteOpen(true);
+  };
+
+  const handleMaintainRole = (user: User) => {
+    setSelectedUser(user);
+    setIsMaintainRoleOpen(true);
   };
 
   const handleFormSubmit = async (user: User) => {
@@ -128,6 +136,7 @@ export function UserListPage() {
         isLoading={isLoading}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
+        onMaintainRole={handleMaintainRole}
       />
 
       {/* Pagination */}
@@ -184,6 +193,15 @@ export function UserListPage() {
         isDeleting={deleteUser.isPending}
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleDeleteConfirm}
+      />
+
+      <MaintainRoleDialog
+        open={isMaintainRoleOpen}
+        user={selectedUser}
+        onClose={() => {
+          setIsMaintainRoleOpen(false);
+          setSelectedUser(undefined);
+        }}
       />
     </div>
   );

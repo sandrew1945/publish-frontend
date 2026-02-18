@@ -88,4 +88,36 @@ export const userManagementService = {
     // Let's assume response.data.result indicates validity.
     return response.data.result === true;
   },
+
+  /**
+   * Get roles assigned to a user
+   */
+  async getUserRoles(userId: number): Promise<Role[]> {
+    const response = await backendApi.usermanager.queryRelationRoles({ userId });
+    return (response.data.data as unknown as Role[]) || [];
+  },
+
+  /**
+   * Get unassigned roles for a user
+   */
+  async getUnassignedRoles(userId: number): Promise<Role[]> {
+    const response = await backendApi.usermanager.queryUnRelationRoles({ userId, roleName: '' });
+    return (response.data.data as unknown as Role[]) || [];
+  },
+
+  /**
+   * Remove a role from a user
+   */
+  async removeUserRole(userId: number, roleId: number): Promise<void> {
+    await backendApi.usermanager.deleteRoleRelation({ userId, roleId });
+  },
+
+  /**
+   * Assign roles to a user
+   */
+  async assignUserRoles(userId: number, roleIds: number[]): Promise<void> {
+    if (roleIds.length === 0) return;
+    const rolesStr = roleIds.join(',');
+    await backendApi.usermanager.createRelation({ userId, rolesStr });
+  },
 };

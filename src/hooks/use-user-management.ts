@@ -15,6 +15,8 @@ export const USER_QUERY_KEYS = {
   details: () => [...USER_QUERY_KEYS.all, 'detail'] as const,
   detail: (id: number) => [...USER_QUERY_KEYS.details(), id] as const,
   validation: (code: string) => [...USER_QUERY_KEYS.all, 'validate', code] as const,
+  roles: (userId: number) => [...USER_QUERY_KEYS.all, 'roles', userId] as const,
+  unassignedRoles: (userId: number) => [...USER_QUERY_KEYS.all, 'unassignedRoles', userId] as const,
 };
 
 export function useUserList(filter: UserFilter, pageParams: PageParams) {
@@ -82,5 +84,48 @@ export function useValidateUserCode(userCode: string) {
     enabled: !!debouncedCode && debouncedCode.trim().length >= 3,
     retry: false,
     staleTime: 1000 * 60, // Cache validation result for 1 min
+  });
+}
+
+export function useUserRoles(userId: number | undefined) {
+  return useQuery({
+    queryKey: userId ? USER_QUERY_KEYS.roles(userId) : ['roles', 'temp'],
+    queryFn: () => (userId ? userManagementService.getUserRoles(userId) : Promise.resolve([])),
+    enabled: !!userId,
+  });
+}
+
+export function useUnassignedRoles(userId: number | undefined) {
+  return useQuery({
+    queryKey: userId ? USER_QUERY_KEYS.unassignedRoles(userId) : ['unassignedRoles', 'temp'],
+    queryFn: () =>
+      userId ? userManagementService.getUnassignedRoles(userId) : Promise.resolve([]),
+    enabled: !!userId,
+  });
+}
+
+export function useAssignRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, roleIds }: { userId: number; roleIds: number[] }) =>
+      userManagementService.assignUserRoles(userId, roleIds),
+    onSuccess: (_, { userId }) => {
+      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.roles(userId) });
+      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.unassignedRoles(userId) });
+      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.lists() }); // Update user list roles
+    },
+  });
+}
+
+export function useRemoveRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, roleId }: { userId: number; roleId: number }) =>
+      userManagementService.removeUserRole(userId, roleId),
+    onSuccess: (_, { userId }) => {
+      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.roles(userId) });
+      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.unassignedRoles(userId) });
+      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.lists() }); // Update user list roles
+    },
   });
 }

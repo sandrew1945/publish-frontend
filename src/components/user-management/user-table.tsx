@@ -1,4 +1,4 @@
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Shield } from 'lucide-react';
 import { User } from '@/services/user-management-service';
 import { SystemCodeTypes, getCodeDesc } from '@/config/fixcode';
 import { UserStatusBadge } from './user-status-badge';
@@ -9,9 +9,10 @@ interface UserTableProps {
   isLoading?: boolean;
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
+  onMaintainRole: (user: User) => void;
 }
 
-export function UserTable({ users, isLoading, onEdit, onDelete }: UserTableProps) {
+export function UserTable({ users, isLoading, onEdit, onDelete, onMaintainRole }: UserTableProps) {
   if (isLoading) {
     return (
       <div className="w-full h-64 flex items-center justify-center text-neutral-400">
@@ -89,6 +90,15 @@ export function UserTable({ users, isLoading, onEdit, onDelete }: UserTableProps
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-neutral-400 hover:text-blue-400 hover:bg-blue-500/10"
+                      onClick={() => onMaintainRole(user)}
+                      title="Maintain Roles"
+                    >
+                      <Shield className="w-4 h-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
