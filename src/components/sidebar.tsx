@@ -18,7 +18,7 @@ export function Sidebar({ className }: { className?: string }) {
   const { isCollapsed, toggleCollapse } = useSidebar();
 
   // Fetch menu based on user role
-  const { data: menuTree, isLoading } = useMenuTree();
+  const { data: menuTree, isLoading } = useUserMenu(user?.roleId);
 
   // Map backend tree to MenuItem[]
   const menuItems = useMemo(() => {

@@ -7,6 +7,7 @@ import { RoleFilterBar } from './role-filter-bar';
 import { RoleTable } from './role-table';
 import { RoleFormDialog } from './role-form-dialog';
 import { RoleDeleteDialog } from './role-delete-dialog';
+import { AssignMenuDialog } from './assign-menu-dialog';
 import {
   useRoleList,
   useCreateRole,
@@ -28,6 +29,9 @@ export function RoleListPage() {
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<Role | undefined>(undefined);
+
+  const [isAssignMenuOpen, setIsAssignMenuOpen] = useState(false);
+  const [roleToAssign, setRoleToAssign] = useState<Role | undefined>(undefined);
 
   // Global Loading
   const { startLoading, stopLoading } = useGlobalLoading();
@@ -60,6 +64,11 @@ export function RoleListPage() {
     setSelectedRole(role);
     setFormMode('edit');
     setIsFormOpen(true);
+  };
+
+  const handleAssignMenu = (role: Role) => {
+    setRoleToAssign(role);
+    setIsAssignMenuOpen(true);
   };
 
   const handleDeleteClick = (role: Role) => {
@@ -126,6 +135,7 @@ export function RoleListPage() {
         isLoading={isLoading}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}
+        onAssignMenu={handleAssignMenu}
       />
 
       {/* Pagination */}
@@ -181,6 +191,16 @@ export function RoleListPage() {
         isDeleting={deleteRole.isPending}
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleDeleteConfirm}
+      />
+
+      <AssignMenuDialog
+        open={isAssignMenuOpen}
+        roleId={roleToAssign?.roleId}
+        roleName={roleToAssign?.roleName}
+        onClose={() => setIsAssignMenuOpen(false)}
+        onSuccess={() => {
+          // Optional: refresh data if needed, though menu assignment specific to role usually doesn't affect list
+        }}
       />
     </div>
   );

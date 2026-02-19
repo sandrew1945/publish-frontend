@@ -23,7 +23,7 @@ export function IconPickerDialog({ open, onOpenChange, onSelect }: IconPickerDia
       .map((key) => ({
         name: key,
         // eslint-disable-next-line
-                Icon: (LucideIcons as any)[key] as React.ElementType,
+        Icon: (LucideIcons as any)[key] as React.ElementType,
       }));
     return icons;
   }, []);

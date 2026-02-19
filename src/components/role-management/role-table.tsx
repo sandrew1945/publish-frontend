@@ -1,4 +1,4 @@
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Shield } from 'lucide-react';
 import { Role } from '@/services/role-management-service';
 import { RoleStatusBadge } from './role-status-badge';
 import { Button } from '@/components/button';
@@ -8,9 +8,10 @@ interface RoleTableProps {
   isLoading?: boolean;
   onEdit: (role: Role) => void;
   onDelete: (role: Role) => void;
+  onAssignMenu: (role: Role) => void;
 }
 
-export function RoleTable({ roles, isLoading, onEdit, onDelete }: RoleTableProps) {
+export function RoleTable({ roles, isLoading, onEdit, onDelete, onAssignMenu }: RoleTableProps) {
   if (isLoading) {
     return (
       <div className="w-full h-64 flex items-center justify-center text-neutral-400">
@@ -55,6 +56,15 @@ export function RoleTable({ roles, isLoading, onEdit, onDelete }: RoleTableProps
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-neutral-400 hover:text-primary hover:bg-primary/10"
+                      onClick={() => onAssignMenu(role)}
+                      title="Assign Menu"
+                    >
+                      <Shield className="w-4 h-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"

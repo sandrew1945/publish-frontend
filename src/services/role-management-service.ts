@@ -85,4 +85,26 @@ export const roleManagementService = {
     // Assuming true means valid (does not exist) based on user-management pattern
     return response.data.result === true;
   },
+
+  /**
+   * Get checked permissions for a role
+   */
+  async getCheckedPremission(roleId: number): Promise<number[]> {
+    const response = await backendApi.rolemanager.getCheckedPremission({ roleId });
+    // The API returns a list of function IDs directly in the data object, or wrapped
+    // Based on api/role.ts, it returns JsonResult.
+    // We need to check what the actual return type structure is.
+    // Typically it's response.data.data
+    return (response.data.data as unknown as number[]) || [];
+  },
+
+  /**
+   * Save selected permissions for a role
+   */
+  async saveSelectedFunc(roleId: number, functionIds: number[]): Promise<void> {
+    await backendApi.rolemanager.saveSelectedFunc({
+      roleId,
+      functionIds,
+    });
+  },
 };

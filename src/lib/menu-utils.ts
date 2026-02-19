@@ -26,9 +26,7 @@ function getIconComponent(iconName: string | undefined): any {
   // This iteration is a bit safer than doing it for every single icon if we assume standard casing
   // But let's do a find for robustness
   const lowerName = iconName.toLowerCase().replace(/[-_]/g, '');
-  const foundKey = Object.keys(LucideIcons).find(
-    (key) => key.toLowerCase() === lowerName
-  );
+  const foundKey = Object.keys(LucideIcons).find((key) => key.toLowerCase() === lowerName);
 
   if (foundKey) {
     return (LucideIcons as any)[foundKey];
@@ -44,13 +42,14 @@ export function mapTreeNodeToMenuItem(node: TreeNode): MenuItem {
   // Default to Folder/File if no icon specified
   let IconComponent: any = hasChildren ? Folder : File;
 
-  if (node.icon) {
-    const resolved = getIconComponent(node.icon);
+  const iconName = node.meta?.icon || node.icon;
+  if (iconName) {
+    const resolved = getIconComponent(iconName);
     if (resolved) {
       IconComponent = resolved;
     } else {
       // Only log if we have an icon name but couldn't resolve it, to help debugging
-      console.warn(`[MenuUtils] Could not resolve icon: "${node.icon}"`);
+      console.warn(`[MenuUtils] Could not resolve icon: "${iconName}"`);
     }
   }
 

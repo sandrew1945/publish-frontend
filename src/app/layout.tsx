@@ -23,12 +23,7 @@ import NextTopLoader from 'nextjs-toploader';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn(
-          'min-h-screen bg-background font-sans antialiased',
-          outfit.variable
-        )}
-      >
+      <body className={cn('min-h-screen bg-background font-sans antialiased', outfit.variable)}>
         <ReactQueryProvider>
           <AuthProvider>
             <NextTopLoader

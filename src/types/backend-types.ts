@@ -71,6 +71,10 @@ export interface TreeNode {
   /** @format int32 */
   funcOrder?: number;
   children?: TreeNode[];
+  meta?: {
+    icon?: string;
+    title?: string;
+  };
 }
 
 export interface JsonResultListUserInfoVO {
