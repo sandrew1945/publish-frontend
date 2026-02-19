@@ -6,7 +6,7 @@ import { LogOut, ChevronsLeft, ChevronsRight, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useSidebar } from '@/lib/sidebar-context';
 import { SidebarItem } from './sidebar-item';
-import { useUserMenu } from '@/hooks/use-menu';
+import { useMenuTree, useUserMenu } from '@/hooks/use-menu';
 import { mapTreeNodeToMenuItem } from '@/lib/menu-utils';
 import { useMemo } from 'react';
 
@@ -18,7 +18,7 @@ export function Sidebar({ className }: { className?: string }) {
   const { isCollapsed, toggleCollapse } = useSidebar();
 
   // Fetch menu based on user role
-  const { data: menuTree, isLoading } = useUserMenu(user?.roleId);
+  const { data: menuTree, isLoading } = useMenuTree();
 
   // Map backend tree to MenuItem[]
   const menuItems = useMemo(() => {

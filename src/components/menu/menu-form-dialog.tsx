@@ -81,8 +81,11 @@ export function MenuFormDialog({ open, onOpenChange, parent, editItem }: MenuFor
 
   const onSubmit = (data: FormValues) => {
     if (isEdit && editItem) {
+      const otherProps = { ...editItem };
+      delete otherProps.children;
+
       const updatedNode: TreeNode = {
-        ...editItem,
+        ...otherProps,
         name: data.name,
         path: data.path,
         icon: data.icon,
