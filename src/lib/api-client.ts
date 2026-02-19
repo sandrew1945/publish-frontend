@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import { Api } from './api';
 
 // Create the typed API instance
@@ -32,6 +33,15 @@ apiClient.interceptors.request.use(
 // Response interceptor
 apiClient.interceptors.response.use(
   (response) => {
+    const { data } = response;
+    // Check if the response follows the { result: false, msg: "..." } structure
+    if (data && data.result === false && data.msg) {
+      toast.error(data.msg);
+      // We do NOT reject here because the caller (UI components) might not catch the error,
+      // leading to "Unhandled Runtime Error" in dev mode.
+      // We rely on the toast to notify the user.
+      // The caller will still receive the response and can check result: false if needed.
+    }
     return response;
   },
   (error) => {
@@ -45,7 +55,14 @@ apiClient.interceptors.response.use(
           document.cookie = 'sid=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
           window.location.href = '/login';
         }
+      } else {
+        // Handle other HTTP errors
+        const msg = error.response.data?.msg || error.message || 'An error occurred';
+        toast.error(msg);
       }
+    } else {
+      // Handle network errors or other issues
+      toast.error(error.message || 'Network Error');
     }
     return Promise.reject(error);
   }

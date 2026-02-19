@@ -1,9 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
 
 export default function UnauthorizedPage() {
+  const { logout } = useAuth();
   return (
     <main className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-background">
       {/* Background gradients */}
@@ -25,13 +26,13 @@ export default function UnauthorizedPage() {
           your administrator to request access.
         </p>
 
-        <Link
-          href="/login"
+        <button
+          onClick={() => logout()}
           className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-muted text-foreground hover:bg-muted/80 transition-colors font-medium border border-white/10"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Login
-        </Link>
+        </button>
       </div>
     </main>
   );
