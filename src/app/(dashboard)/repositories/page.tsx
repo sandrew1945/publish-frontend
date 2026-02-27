@@ -13,6 +13,7 @@ import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { RepositoryTable } from '@/components/repository-management/repository-table';
 import { RepositoryFormDialog } from '@/components/repository-management/repository-form-dialog';
+import { RepositoryDeleteDialog } from '@/components/repository-management/repository-delete-dialog';
 
 export default function RepositoryManagementPage() {
   const [data, setData] = useState<RepoDTO[]>([]);
@@ -26,10 +27,15 @@ export default function RepositoryManagementPage() {
   const [filter, setFilter] = useState<RepositoryFilter>({ status: undefined, ownerId: undefined });
   const [searchInput, setSearchInput] = useState('');
 
-  // Dialog State
+  // Form Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
   const [selectedRepo, setSelectedRepo] = useState<RepoDTO | undefined>();
+
+  // Delete Dialog State
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [repoToDelete, setRepoToDelete] = useState<RepoDTO | undefined>();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -98,15 +104,25 @@ export default function RepositoryManagementPage() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (repo: RepoDTO) => {
-    if (confirm(`Are you sure you want to delete repository "${repo.repoName}"?`)) {
-      try {
-        await repositoryService.deleteRepository(repo.repoId!);
-        toast.success('Repository deleted successfully');
-        fetchData();
-      } catch (error) {
-        console.error('Failed to delete repository:', error);
-      }
+  const handleDelete = (repo: RepoDTO) => {
+    setRepoToDelete(repo);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!repoToDelete) return;
+    try {
+      setIsDeleting(true);
+      await repositoryService.deleteRepository(repoToDelete.repoId!);
+      toast.success('Repository deleted successfully');
+      setIsDeleteDialogOpen(false);
+      setRepoToDelete(undefined);
+      fetchData();
+    } catch (error) {
+      console.error('Failed to delete repository:', error);
+      toast.error('Failed to delete repository');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -278,6 +294,17 @@ export default function RepositoryManagementPage() {
         initialData={selectedRepo}
         onClose={() => setIsDialogOpen(false)}
         onSubmit={handleFormSubmit}
+      />
+
+      <RepositoryDeleteDialog
+        open={isDeleteDialogOpen}
+        repo={repoToDelete}
+        isDeleting={isDeleting}
+        onClose={() => {
+          setIsDeleteDialogOpen(false);
+          setRepoToDelete(undefined);
+        }}
+        onConfirm={handleDeleteConfirm}
       />
     </div>
   );
