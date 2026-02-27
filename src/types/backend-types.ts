@@ -127,3 +127,19 @@ export interface AclUserBean {
   userStatus?: string;
   token?: string;
 }
+
+export interface RepoDTO {
+  /** @format int32 */
+  repoId?: number;
+  repoName?: string;
+  repoDesc?: string;
+  /** @format int32 */
+  status?: number;
+  /** @format int32 */
+  collaboratorIds?: number[];
+  collaboratorIdsString?: string;
+  collaboratorNames?: string;
+  createBy?: number;
+  creatorName?: string;
+  createDate?: string;
+}

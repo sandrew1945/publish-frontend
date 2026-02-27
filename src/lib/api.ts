@@ -6,6 +6,7 @@ import { UserManagerApi } from '@/api/user';
 import { RoleManagerApi } from '@/api/role';
 import { MenuManagerApi } from '@/api/menu';
 import { AuthApi } from '@/api/auth';
+import { Repository } from '@/api/repository';
 
 // Re-export types for backward compatibility
 export * from '@/types/backend-types';
@@ -22,6 +23,7 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
   public usermanager: UserManagerApi<SecurityDataType>;
   public rolemanager: RoleManagerApi<SecurityDataType>;
   public menumanager: MenuManagerApi<SecurityDataType>;
+  public repository: Repository<SecurityDataType>;
 
   // Auth endpoints (grouped as in original file)
   public setCurrentlyRole: { setCurrentlyRole: AuthApi<SecurityDataType>['setCurrentlyRole'] };
@@ -41,6 +43,7 @@ export class Api<SecurityDataType = unknown> extends HttpClient<SecurityDataType
     this.usermanager = new UserManagerApi(this);
     this.rolemanager = new RoleManagerApi(this);
     this.menumanager = new MenuManagerApi(this);
+    this.repository = new Repository(this);
     this.auth = new AuthApi(this);
 
     // Map auth endpoints to match original structure
