@@ -6,7 +6,7 @@ import { Button } from '@/components/button';
 import { RoleFilterBar } from './role-filter-bar';
 import { RoleTable } from './role-table';
 import { RoleFormDialog } from './role-form-dialog';
-import { RoleDeleteDialog } from './role-delete-dialog';
+import { DeleteConfirmDialog } from '@/components/common/delete-confirm-dialog';
 import { AssignMenuDialog } from './assign-menu-dialog';
 import {
   useRoleList,
@@ -185,9 +185,19 @@ export function RoleListPage() {
         onSubmit={handleFormSubmit}
       />
 
-      <RoleDeleteDialog
+      <DeleteConfirmDialog
         open={isDeleteOpen}
-        role={roleToDelete}
+        title="Delete Role?"
+        description={
+          roleToDelete ? (
+            <>
+              Are you sure you want to delete role{' '}
+              <span className="text-white font-medium">{roleToDelete.roleName}</span> ({roleToDelete.roleCode})? This
+              action cannot be undone immediately.
+            </>
+          ) : null
+        }
+        confirmLabel="Delete Role"
         isDeleting={deleteRole.isPending}
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleDeleteConfirm}

@@ -1,22 +1,32 @@
 'use client';
 
 import { useState } from 'react';
-import { useMenuTree } from '@/hooks/use-menu';
+import { useMenuTree, useDeleteMenu } from '@/hooks/use-menu';
 import { Button } from '@/components/button';
 import { Plus, RefreshCw } from 'lucide-react';
 import { MenuTree } from '@/components/menu/menu-tree';
 import { MenuFormDialog } from '@/components/menu/menu-form-dialog';
-import { MenuDeleteDialog } from '@/components/menu/menu-delete-dialog';
+import { DeleteConfirmDialog } from '@/components/common/delete-confirm-dialog';
 import { TreeNode } from '@/types/backend-types';
 
 export default function MenuManagementPage() {
   const { data: menuTree, isLoading, error, refetch } = useMenuTree();
+  const deleteMenu = useDeleteMenu();
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const [selectedParent, setSelectedParent] = useState<TreeNode | null>(null);
   const [selectedItem, setSelectedItem] = useState<TreeNode | null>(null);
+
+  const handleDeleteConfirm = async () => {
+    if (selectedItem?.functionId) {
+      await deleteMenu.mutateAsync(selectedItem.functionId);
+      setIsDeleteOpen(false);
+      setSelectedItem(null);
+    }
+  };
 
   const handleAdd = (parent: TreeNode | null) => {
     setSelectedParent(parent);
@@ -92,7 +102,30 @@ export default function MenuManagementPage() {
         editItem={selectedItem}
       />
 
-      <MenuDeleteDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen} item={selectedItem} />
+      <DeleteConfirmDialog
+        open={isDeleteOpen}
+        title="Delete Menu?"
+        description={
+          selectedItem ? (
+            <>
+              Are you sure you want to delete &ldquo;<span className="text-white font-medium">{selectedItem.name}</span>&rdquo;? This
+              action cannot be undone.
+              {selectedItem.children && selectedItem.children.length > 0 && (
+                <span className="block text-red-400 mt-2 font-semibold">
+                  Warning: This menu has sub-items which may also be deleted or become orphaned.
+                </span>
+              )}
+            </>
+          ) : null
+        }
+        confirmLabel="Delete Menu"
+        isDeleting={deleteMenu.isPending}
+        onClose={() => {
+          setIsDeleteOpen(false);
+          setSelectedItem(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }

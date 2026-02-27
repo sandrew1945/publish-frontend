@@ -6,7 +6,7 @@ import { Button } from '@/components/button';
 import { UserFilterBar } from './user-filter-bar';
 import { UserTable } from './user-table';
 import { UserFormDialog } from './user-form-dialog';
-import { UserDeleteDialog } from './user-delete-dialog';
+import { DeleteConfirmDialog } from '@/components/common/delete-confirm-dialog';
 import { MaintainRoleDialog } from './maintain-role-dialog';
 import {
   useUserList,
@@ -187,9 +187,19 @@ export function UserListPage() {
         onSubmit={handleFormSubmit}
       />
 
-      <UserDeleteDialog
+      <DeleteConfirmDialog
         open={isDeleteOpen}
-        user={userToDelete}
+        title="Delete User?"
+        description={
+          userToDelete ? (
+            <>
+              Are you sure you want to delete user{' '}
+              <span className="text-white font-medium">{userToDelete.userName}</span> ({userToDelete.userCode})? This
+              action cannot be undone immediately, though the user is soft-deleted.
+            </>
+          ) : null
+        }
+        confirmLabel="Delete User"
         isDeleting={deleteUser.isPending}
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleDeleteConfirm}

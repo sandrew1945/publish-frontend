@@ -13,7 +13,7 @@ import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { RepositoryTable } from '@/components/repository-management/repository-table';
 import { RepositoryFormDialog } from '@/components/repository-management/repository-form-dialog';
-import { RepositoryDeleteDialog } from '@/components/repository-management/repository-delete-dialog';
+import { DeleteConfirmDialog } from '@/components/common/delete-confirm-dialog';
 
 export default function RepositoryManagementPage() {
   const [data, setData] = useState<RepoDTO[]>([]);
@@ -296,9 +296,19 @@ export default function RepositoryManagementPage() {
         onSubmit={handleFormSubmit}
       />
 
-      <RepositoryDeleteDialog
+      <DeleteConfirmDialog
         open={isDeleteDialogOpen}
-        repo={repoToDelete}
+        title="Delete Repository?"
+        description={
+          repoToDelete ? (
+            <>
+              Are you sure you want to delete repository{' '}
+              <span className="text-white font-medium">{repoToDelete.repoName}</span>? This action cannot be
+              undone immediately.
+            </>
+          ) : null
+        }
+        confirmLabel="Delete Repository"
         isDeleting={isDeleting}
         onClose={() => {
           setIsDeleteDialogOpen(false);
