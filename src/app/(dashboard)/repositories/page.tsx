@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Plus, Search, RefreshCw, X } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Folder } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { repositoryService, RepositoryFilter } from '@/services/repository-service';
@@ -11,9 +11,70 @@ import { SystemStatus, getCodesByType, SystemCodeTypes } from '@/config/fixcode'
 
 import { Button } from '@/components/button';
 import { Input } from '@/components/input';
-import { RepositoryTable } from '@/components/repository-management/repository-table';
+import { PaginationTable, type ColumnDef } from '@/components/common/pagination-table';
 import { RepositoryFormDialog } from '@/components/repository-management/repository-form-dialog';
 import { DeleteConfirmDialog } from '@/components/common/delete-confirm-dialog';
+
+// ─── Avatar helpers (moved from repository-table.tsx) ────────────────────────
+
+const getInitials = (name?: string) => {
+  if (!name) return '?';
+  return name.slice(0, 2).toUpperCase();
+};
+
+const AVATAR_COLORS = ['bg-blue-600', 'bg-emerald-600', 'bg-amber-600', 'bg-purple-600', 'bg-rose-600'] as const;
+
+function Avatar({
+  name,
+  className = '',
+  style,
+}: {
+  name?: string;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const initials = getInitials(name);
+  const colorIndex = name ? name.charCodeAt(0) % AVATAR_COLORS.length : 0;
+  return (
+    <div
+      className={`flex items-center justify-center text-white font-medium rounded-full shrink-0 ${AVATAR_COLORS[colorIndex]} ${className}`}
+      title={name}
+      style={style}
+    >
+      {initials}
+    </div>
+  );
+}
+
+function AvatarStack({ names }: { names: string[] }) {
+  if (!names.length)
+    return <span className="text-neutral-500 italic text-sm">No collaborators</span>;
+  const MAX_SHOW = 3;
+  const show = names.slice(0, MAX_SHOW);
+  const extra = names.length - MAX_SHOW;
+  return (
+    <div className="flex items-center -space-x-2">
+      {show.map((name, i) => (
+        <Avatar
+          key={i}
+          name={name}
+          className="w-7 h-7 text-[10px] ring-2 ring-[#0d1117]"
+          style={{ zIndex: 10 - i }}
+        />
+      ))}
+      {extra > 0 && (
+        <div
+          className="flex items-center justify-center w-7 h-7 rounded-full ring-2 ring-[#0d1117] bg-white/10 text-neutral-400 text-[10px] font-medium"
+          style={{ zIndex: 0 }}
+        >
+          +{extra}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function RepositoryManagementPage() {
   const [data, setData] = useState<RepoDTO[]>([]);
@@ -37,10 +98,12 @@ export default function RepositoryManagementPage() {
   const [repoToDelete, setRepoToDelete] = useState<RepoDTO | undefined>();
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // NOTE: getUserList returns all active users via a dedicated non-paginated endpoint,
+  // avoiding the overhead of the paginated API with an artificially large page size.
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await userManagementService.getUsers({}, { page: 1, pageSize: 1000 });
-      setUsers(res.records || []);
+      const users = await userManagementService.getUserList();
+      setUsers(users);
     } catch (e) {
       console.error('Failed to fetch users', e);
     }
@@ -68,16 +131,12 @@ export default function RepositoryManagementPage() {
     fetchData();
   }, [fetchData]);
 
+
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
     setFilter((prev) => ({ ...prev, repoName: searchInput || undefined }));
-  };
-
-  const handleReset = () => {
-    setSearchInput('');
-    setPage(1);
-    setFilter({ status: undefined, ownerId: undefined, repoName: undefined });
   };
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -144,6 +203,119 @@ export default function RepositoryManagementPage() {
 
   const statusOptions = getCodesByType(SystemCodeTypes.STATUS);
 
+  // ─── Column definitions ─────────────────────────────────────────────────────
+
+  const columns: ColumnDef<RepoDTO>[] = [
+    {
+      name: 'repoName',
+      label: 'Repository Name',
+      field: 'repoName',
+      width: '20%',
+      type: 'data'
+    },
+    {
+      name: 'repoDesc',
+      label: 'Description',
+      field: 'repoDesc',
+      width: '25%',
+      type: 'data'
+    },
+    {
+      name: 'owner',
+      label: 'Owner',
+      field: 'creatorName',
+      width: '15%',
+      type: 'slot',
+      render: (repo) => (
+        <div className="flex items-center gap-3">
+          <Avatar
+            name={(repo.creatorName as string) || `User ${repo.createBy || '?'}`}
+            className="w-8 h-8 text-xs ring-1 ring-white/10"
+          />
+          <span className="text-sm text-neutral-300">
+            {(repo.creatorName as string) || `User ${repo.createBy || 'Unknown'}`}
+          </span>
+        </div>
+      ),
+    },
+    {
+      name: 'collaborators',
+      label: 'Collaborators',
+      field: 'collaboratorNames',
+      width: '15%',
+      type: 'slot',
+      // NOTE: collaboratorNames is already returned by the API as a comma-separated string
+      render: (repo) => {
+        const names = repo.collaboratorNames
+          ? repo.collaboratorNames.split(',').map((n) => n.trim()).filter(Boolean)
+          : [];
+        return <AvatarStack names={names} />;
+      },
+    },
+    {
+      name: 'status',
+      label: 'Status',
+      field: 'status',
+      width: '10%',
+      align: 'center',
+      type: 'slot',
+      render: (repo) => {
+        const isActive = repo.status === SystemStatus.ACTIVE;
+        return (
+          <span
+            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium border ${isActive
+              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+              : 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20'
+              }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isActive ? 'bg-emerald-500' : 'bg-neutral-500'}`}
+            />
+            {isActive ? 'Active' : 'Inactive'}
+          </span>
+        );
+      },
+    },
+    {
+      name: 'actions',
+      label: 'Actions',
+      field: 'repoId',
+      width: '15%',
+      align: 'right',
+      type: 'slot',
+      render: (repo) => (
+        <div className="flex items-center justify-end gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon"
+            title="View/Manage"
+            className="w-8 h-8 text-neutral-400 bg-white/5 border border-white/5 hover:bg-white/10 hover:text-white rounded-md"
+          >
+            <Folder className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleEdit(repo as RepoDTO)}
+            title="Edit"
+            className="w-8 h-8 text-neutral-400 bg-white/5 border border-white/5 hover:bg-white/10 hover:text-white rounded-md"
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleDelete(repo as RepoDTO)}
+            title="Delete"
+            className="w-8 h-8 text-neutral-400 bg-white/5 border border-white/5 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/20 rounded-md"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col h-full bg-[#0d1117] min-h-screen">
       {/* Header */}
@@ -200,6 +372,7 @@ export default function RepositoryManagementPage() {
                 </option>
               ))}
             </select>
+
             <Button
               type="submit"
               className="px-6 h-10 bg-blue-600 hover:bg-blue-700 text-white border-transparent"
@@ -210,82 +383,23 @@ export default function RepositoryManagementPage() {
           </form>
         </div>
 
-        {/* Table & Pagination */}
-        <div className="flex-1 bg-[#0d1117] rounded-lg border border-white/10 flex flex-col">
-          <div className="flex-1 overflow-auto rounded-t-lg">
-            {loading ? (
-              <div className="flex items-center justify-center h-40">
-                <RefreshCw className="w-6 h-6 animate-spin text-neutral-500" />
-              </div>
-            ) : (
-              <RepositoryTable
-                data={data}
-                users={users}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            )}
-          </div>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-white/10 bg-[#14181d] rounded-b-lg">
-            <div className="flex items-center text-sm text-neutral-400 gap-2">
-              <span>Show</span>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setPage(1);
-                }}
-                className="bg-[#0d1117] border border-white/10 rounded-md px-2 py-1 h-8 text-white focus:outline-none focus:border-white/20"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
-              <span>per page</span>
-            </div>
-
-            <div className="flex items-center gap-2 text-sm">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="h-8 border-white/10 bg-transparent text-neutral-400 hover:text-white hover:bg-white/5 disabled:opacity-50"
-              >
-                Previous
-              </Button>
-              <div className="flex items-center gap-1">
-                {[...Array(Math.max(1, Math.ceil(total / pageSize)))].map((_, i) => {
-                  const pageNum = i + 1;
-                  // Show current, first, last, and pages around current (simple ellipsis logic omitted for brevity, showing all if few or truncating if many but we only need basic for now based on total)
-                  const isCurrent = page === pageNum;
-                  return (
-                    <Button
-                      key={i}
-                      variant={isCurrent ? 'default' : 'ghost'}
-                      size="sm"
-                      className={`min-w-8 h-8 px-2 rounded-md ${isCurrent ? 'bg-blue-600 text-white hover:bg-blue-700 border-transparent' : 'text-neutral-400 bg-transparent hover:text-white hover:bg-white/10'}`}
-                      onClick={() => setPage(pageNum)}
-                    >
-                      {pageNum}
-                    </Button>
-                  );
-                })}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= Math.ceil(total / pageSize) || total === 0}
-                onClick={() => setPage((p) => p + 1)}
-                className="h-8 border-white/10 bg-transparent text-neutral-400 hover:text-white hover:bg-white/5 disabled:opacity-50"
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        </div>
+        {/* PaginationTable replaces RepositoryTable + inline pagination */}
+        <PaginationTable<RepoDTO>
+          data={data}
+          columns={columns}
+          isLoading={loading}
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          query={fetchData}
+          rowKey={(repo) => repo.repoId ?? 0}
+          emptyText="No repositories found"
+        />
       </div>
 
       <RepositoryFormDialog
@@ -303,8 +417,8 @@ export default function RepositoryManagementPage() {
           repoToDelete ? (
             <>
               Are you sure you want to delete repository{' '}
-              <span className="text-white font-medium">{repoToDelete.repoName}</span>? This action cannot be
-              undone immediately.
+              <span className="text-white font-medium">{repoToDelete.repoName}</span>? This action
+              cannot be undone immediately.
             </>
           ) : null
         }

@@ -1,11 +1,20 @@
 ## ADDED Requirements
 
 ### Requirement: Repository Listing
-The system SHALL provide a view to list all code repositories. The list MUST support pagination and allow filtering by repository name and status.
+The system SHALL provide a view to list all code repositories. The repository list page SHALL display repository records using the shared `PaginationTable` component with a declarative `columns` definition, replacing the bespoke `RepositoryTable` component. The list MUST support pagination and allow filtering by repository name, owner, and status.
 
 #### Scenario: View repository list on page load
 - **WHEN** the user navigates to the Repository Management page
-- **THEN** the system fetches and displays the first page of repositories
+- **THEN** it SHALL provide a `columns` array containing: Repository Name (`data`), Description (`data`), Owner (`slot`), Collaborators (`slot`), Status (`slot`), and Actions (`slot`)
+- **AND** the system fetches and displays the first page of repositories
+
+#### Scenario: Skeleton loading on initial fetch
+- **WHEN** data is being fetched (loading state is true)
+- **THEN** the `PaginationTable` SHALL render skeleton rows matching `pageSize`; no spinner element outside the table SHALL be rendered
+
+#### Scenario: Pagination controls wired correctly
+- **WHEN** the user changes page or page size in `TablePagination`
+- **THEN** `page` and `pageSize` state SHALL update in the page component and `fetchData` SHALL be called
 
 #### Scenario: Filter repositories by name
 - **WHEN** the user enters a specific text into the search bar and submits

@@ -48,6 +48,15 @@ export const userManagementService = {
   },
 
   /**
+   * Fetch all active users (non-paginated).
+   * Suitable for dropdowns and selection lists.
+   */
+  async getUserList(): Promise<User[]> {
+    const response = await backendApi.usermanager.getUserList();
+    return (response.data.data as unknown as User[]) || [];
+  },
+
+  /**
    * Get user detail by ID
    */
   async getUserById(userId: number): Promise<User> {
