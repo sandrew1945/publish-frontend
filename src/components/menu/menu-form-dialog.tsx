@@ -14,22 +14,9 @@ import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { Label } from '@/components/ui/label';
 import { TreeNode } from '@/types/backend-types';
-import { useCreateMenu, useUpdateMenu } from '@/hooks/use-menu';
+import { useCreateMenu, useUpdateMenu, menuFormSchema, MenuFormValues } from '@/hooks/use-menu';
 import { useEffect, useState } from 'react';
 import { IconPickerDialog } from '@/components/icon-picker-dialog';
-import { z } from 'zod';
-
-// NOTE: No .default() here — that causes Zod v4 input/output type divergence
-// which breaks @hookform/resolvers type inference. Defaults are set in useForm.
-const formSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  path: z.string().min(1, 'Path is required'),
-  icon: z.string().optional(),
-  funcOrder: z.number().min(0),
-  parentId: z.number().nullable(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
 
 interface MenuFormDialogProps {
   open: boolean;
@@ -46,8 +33,8 @@ export function MenuFormDialog({ open, onOpenChange, parent, editItem }: MenuFor
 
   // ... (form initialization remains same)
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<MenuFormValues>({
+    resolver: zodResolver(menuFormSchema),
     defaultValues: {
       name: '',
       path: '',
@@ -79,7 +66,7 @@ export function MenuFormDialog({ open, onOpenChange, parent, editItem }: MenuFor
     }
   }, [open, editItem, parent, form]);
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = (data: MenuFormValues) => {
     if (isEdit && editItem) {
       const otherProps = { ...editItem };
       delete otherProps.children;
@@ -127,14 +114,16 @@ export function MenuFormDialog({ open, onOpenChange, parent, editItem }: MenuFor
           </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">Name<span className="text-red-400">*</span></Label>
               <Input id="name" {...form.register('name')} placeholder="Menu Name" />
               {form.formState.errors.name && (
                 <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
               )}
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="path">Path</Label>
+              <Label htmlFor="path">
+                Path<span className="text-red-400">*</span>
+              </Label>
               <Input id="path" {...form.register('path')} placeholder="/route-path" />
               {form.formState.errors.path && (
                 <p className="text-sm text-destructive">{form.formState.errors.path.message}</p>

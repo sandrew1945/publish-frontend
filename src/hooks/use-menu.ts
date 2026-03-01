@@ -3,12 +3,13 @@ import { menuService } from '@/services/menu-service';
 import { TreeNode } from '@/types/backend-types';
 import { z } from 'zod';
 
-// Zod Schema for Menu Form
+// NOTE: No .default() — Zod v4 default causes input/output type divergence
+// which breaks @hookform/resolvers type inference. Defaults are set in useForm.
 export const menuFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   path: z.string().min(1, 'Path is required'),
   icon: z.string().optional(),
-  funcOrder: z.coerce.number().min(0).default(0),
+  funcOrder: z.number().min(0),
   parentId: z.number().nullable(), // null for root
 });
 

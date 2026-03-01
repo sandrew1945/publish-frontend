@@ -1,11 +1,31 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { z } from 'zod';
 import {
   userManagementService,
   UserFilter,
   PageParams,
   User,
 } from '@/services/user-management-service';
+
+// ─── Zod Schema ───────────────────────────────────────────────────────────────
+
+// NOTE: password is optional in schema; create-mode requirement is enforced
+// in the component's onSubmit via form.setError for mode-aware validation.
+export const userFormSchema = z.object({
+  userCode: z.string().min(1, 'User Code is required'),
+  userName: z.string().min(1, 'User Name is required'),
+  password: z.string().optional(),
+  sex: z.number().optional(),
+  mobile: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email('Invalid email').optional().or(z.literal('')),
+  userStatus: z.number(),
+});
+
+export type UserFormValues = z.infer<typeof userFormSchema>;
+
+// ─── Query Keys ───────────────────────────────────────────────────────────────
 
 export const USER_QUERY_KEYS = {
   all: ['users'] as const,
@@ -17,6 +37,7 @@ export const USER_QUERY_KEYS = {
   validation: (code: string) => [...USER_QUERY_KEYS.all, 'validate', code] as const,
   roles: (userId: number) => [...USER_QUERY_KEYS.all, 'roles', userId] as const,
   unassignedRoles: (userId: number) => [...USER_QUERY_KEYS.all, 'unassignedRoles', userId] as const,
+  userList: () => [...USER_QUERY_KEYS.all, 'userList'] as const,
 };
 
 export function useUserList(filter: UserFilter, pageParams: PageParams) {

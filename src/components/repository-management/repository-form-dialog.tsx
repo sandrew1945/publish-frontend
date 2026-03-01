@@ -1,11 +1,19 @@
+'use client';
+
 import { useState, useEffect, useRef } from 'react';
-import { X, Loader2, Check, ChevronsUpDown } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { X, Loader2, Check } from 'lucide-react';
 import { RepoDTO } from '@/types/backend-types';
 import { Input } from '@/components/input';
 import { Button } from '@/components/button';
 import { SystemStatus } from '@/config/fixcode';
-import { repositoryService } from '@/services/repository-service';
-import { userManagementService, User } from '@/services/user-management-service';
+import {
+  useUserListForSelect,
+  useValidateRepoName,
+  repoFormSchema,
+  RepoFormValues,
+} from '@/hooks/use-repository';
 
 interface RepositoryFormDialogProps {
   open: boolean;
@@ -22,35 +30,31 @@ export function RepositoryFormDialog({
   onClose,
   onSubmit,
 }: RepositoryFormDialogProps) {
-  const [formData, setFormData] = useState<Partial<RepoDTO>>({
-    status: SystemStatus.ACTIVE,
-    collaboratorIds: [],
+  const form = useForm<RepoFormValues>({
+    resolver: zodResolver(repoFormSchema),
+    defaultValues: {
+      repoName: '',
+      repoDesc: '',
+      status: SystemStatus.ACTIVE,
+      collaboratorIds: [],
+    },
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Validation state
-  const [checkingName, setCheckingName] = useState(false);
-  const [isNameValid, setIsNameValid] = useState<boolean | null>(null);
-
-  // Collaborators state
-  const [users, setUsers] = useState<User[]>([]);
+  // Collaborators UI state (not form validation concern)
   const [searchTerm, setSearchTerm] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch users for collaborators dropdown
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await userManagementService.getUsers({}, { page: 1, pageSize: 1000 });
-        setUsers(res.records || []);
-      } catch (error) {
-        console.error('Failed to fetch users', error);
-      }
-    };
-    if (open) fetchUsers();
-  }, [open]);
+  // ─── React Query hooks ──────────────────────────────────────────────────
+  const { data: users = [] } = useUserListForSelect();
+
+  // NOTE: useValidateRepoName handles debouncing internally;
+  // in edit mode, unchanged names are skipped automatically.
+  const { data: isNameValid, isFetching: checkingName } = useValidateRepoName(
+    form.watch('repoName') || '',
+    mode,
+    initialData?.repoName
+  );
 
   // Handle outside click for dropdown
   useEffect(() => {
@@ -67,70 +71,47 @@ export function RepositoryFormDialog({
   useEffect(() => {
     if (open) {
       if (mode === 'edit' && initialData) {
-        setFormData({ ...initialData, collaboratorIds: initialData.collaboratorIds || [] });
+        form.reset({
+          repoName: initialData.repoName ?? '',
+          repoDesc: initialData.repoDesc ?? '',
+          status: initialData.status ?? SystemStatus.ACTIVE,
+          collaboratorIds: initialData.collaboratorIds ?? [],
+        });
       } else {
-        setFormData({
+        form.reset({
+          repoName: '',
+          repoDesc: '',
           status: SystemStatus.ACTIVE,
           collaboratorIds: [],
         });
       }
-      setErrors({});
-      setIsNameValid(null);
       setSearchTerm('');
     }
-  }, [open, mode, initialData]);
-
-  // Name Validation
-  useEffect(() => {
-    const validateName = async () => {
-      if (!formData.repoName || formData.repoName.length < 3) {
-        setIsNameValid(null);
-        return;
-      }
-      if (mode === 'edit' && initialData && formData.repoName === initialData.repoName) {
-        setIsNameValid(true);
-        return;
-      }
-
-      setCheckingName(true);
-      try {
-        const valid = await repositoryService.validateRepoName(formData.repoName);
-        setIsNameValid(valid);
-      } catch (e) {
-        setIsNameValid(false);
-      } finally {
-        setCheckingName(false);
-      }
-    };
-
-    const timer = setTimeout(validateName, 500);
-    return () => clearTimeout(timer);
-  }, [formData.repoName, mode, initialData]);
+  }, [open, mode, initialData, form]);
 
   if (!open) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const newErrors: Record<string, string> = {};
-    if (!formData.repoName?.trim()) newErrors.repoName = 'Repository Name is required';
+  const handleFormSubmit = async (data: RepoFormValues) => {
+    // Async uniqueness validation
     if (mode === 'create' && isNameValid === false) {
-      newErrors.repoName = 'Repository Name already exists';
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+      form.setError('repoName', { message: 'Repository Name already exists' });
       return;
     }
 
     try {
-      setIsSubmitting(true);
-      await onSubmit(formData as RepoDTO);
+      // NOTE: Spread initialData to preserve fields not in the form schema
+      // (e.g. repoId, createBy, createDate) that the backend expects
+      const repoPayload: RepoDTO = {
+        ...(initialData ?? {}),
+        repoName: data.repoName,
+        repoDesc: data.repoDesc,
+        status: data.status,
+        collaboratorIds: data.collaboratorIds,
+      };
+      await onSubmit(repoPayload);
       onClose();
     } catch (error) {
       console.error('Failed to submit repository:', error);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -140,18 +121,20 @@ export function RepositoryFormDialog({
   };
 
   const toggleCollaborator = (userId: number) => {
-    const current = formData.collaboratorIds || [];
-    if (current.includes(userId)) {
-      setFormData({ ...formData, collaboratorIds: current.filter((id) => id !== userId) });
-    } else {
-      setFormData({ ...formData, collaboratorIds: [...current, userId] });
-    }
+    const current = form.getValues('collaboratorIds') ?? [];
+    const updated = current.includes(userId)
+      ? current.filter((id) => id !== userId)
+      : [...current, userId];
+    form.setValue('collaboratorIds', updated);
   };
 
   const removeCollaborator = (userId: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    const current = formData.collaboratorIds || [];
-    setFormData({ ...formData, collaboratorIds: current.filter((id) => id !== userId) });
+    const current = form.getValues('collaboratorIds') ?? [];
+    form.setValue(
+      'collaboratorIds',
+      current.filter((id) => id !== userId)
+    );
   };
 
   const filteredUsers = users.filter(
@@ -159,6 +142,8 @@ export function RepositoryFormDialog({
       u.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.userCode?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const watchedCollaboratorIds = form.watch('collaboratorIds') ?? [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -180,7 +165,7 @@ export function RepositoryFormDialog({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-          <form id="repo-form" onSubmit={handleSubmit} className="space-y-6">
+          <form id="repo-form" onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
             {/* Repository Name */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-neutral-200">
@@ -188,12 +173,8 @@ export function RepositoryFormDialog({
               </label>
               <div className="relative">
                 <Input
-                  value={formData.repoName || ''}
-                  onChange={(e) => {
-                    setFormData({ ...formData, repoName: e.target.value });
-                    setErrors({ ...errors, repoName: '' });
-                  }}
-                  className={`bg-[#22272e] border-white/10 text-white placeholder:text-neutral-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${errors.repoName ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500' : ''}`}
+                  {...form.register('repoName')}
+                  className={`bg-[#22272e] border-white/10 text-white placeholder:text-neutral-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 ${form.formState.errors.repoName ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500' : ''}`}
                   placeholder="e.g., backend-api-v2"
                 />
                 {checkingName && (
@@ -205,11 +186,13 @@ export function RepositoryFormDialog({
               <p className="text-xs text-neutral-400">
                 Great repository names are short and memorable.
               </p>
-              {errors.repoName && <p className="text-xs text-red-400">{errors.repoName}</p>}
+              {form.formState.errors.repoName && (
+                <p className="text-xs text-red-400">{form.formState.errors.repoName.message}</p>
+              )}
               {mode === 'create' &&
-                formData.repoName &&
+                form.watch('repoName') &&
                 isNameValid === false &&
-                !errors.repoName &&
+                !form.formState.errors.repoName &&
                 !checkingName && (
                   <p className="text-xs text-red-400">Repository Name already exists</p>
                 )}
@@ -219,8 +202,7 @@ export function RepositoryFormDialog({
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-neutral-200">Description</label>
               <textarea
-                value={formData.repoDesc || ''}
-                onChange={(e) => setFormData({ ...formData, repoDesc: e.target.value })}
+                {...form.register('repoDesc')}
                 className="flex w-full rounded-md border border-white/10 bg-[#22272e] px-3 py-2 text-sm text-white placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 min-h-[100px] resize-y"
                 placeholder="Enter a brief description of the project..."
               />
@@ -233,7 +215,7 @@ export function RepositoryFormDialog({
                 className={`min-h-[40px] w-full rounded-md border border-white/10 bg-[#22272e] px-2 py-1.5 flex flex-wrap gap-2 items-center cursor-text transition-colors ${isDropdownOpen ? 'border-blue-500 ring-1 ring-blue-500' : ''}`}
                 onClick={() => setIsDropdownOpen(true)}
               >
-                {(formData.collaboratorIds || []).map((id) => {
+                {watchedCollaboratorIds.map((id) => {
                   const user = users.find((u) => u.userId === id);
                   if (!user) return null;
 
@@ -265,9 +247,7 @@ export function RepositoryFormDialog({
                   }}
                   onFocus={() => setIsDropdownOpen(true)}
                   className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm text-white placeholder-neutral-500 py-0.5 px-1"
-                  placeholder={
-                    (formData.collaboratorIds || []).length === 0 ? 'Search users...' : ''
-                  }
+                  placeholder={watchedCollaboratorIds.length === 0 ? 'Search users...' : ''}
                 />
               </div>
 
@@ -281,7 +261,7 @@ export function RepositoryFormDialog({
                   ) : (
                     filteredUsers.map((user) => {
                       if (!user.userId) return null;
-                      const isSelected = (formData.collaboratorIds || []).includes(user.userId);
+                      const isSelected = watchedCollaboratorIds.includes(user.userId);
 
                       return (
                         <div
@@ -315,30 +295,32 @@ export function RepositoryFormDialog({
               <div className="flex items-center gap-3 mt-1">
                 <button
                   type="button"
-                  onClick={() =>
-                    setFormData({
-                      ...formData,
-                      status:
-                        formData.status === SystemStatus.ACTIVE
-                          ? SystemStatus.INACTIVE
-                          : SystemStatus.ACTIVE,
-                    })
-                  }
+                  onClick={() => {
+                    const currentStatus = form.getValues('status');
+                    form.setValue(
+                      'status',
+                      currentStatus === SystemStatus.ACTIVE
+                        ? SystemStatus.INACTIVE
+                        : SystemStatus.ACTIVE
+                    );
+                  }}
                   className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1c2128] ${
-                    formData.status === SystemStatus.ACTIVE ? 'bg-blue-500' : 'bg-neutral-600'
+                    form.watch('status') === SystemStatus.ACTIVE ? 'bg-blue-500' : 'bg-neutral-600'
                   }`}
                 >
                   <span className="sr-only">Toggle status</span>
                   <span
                     aria-hidden="true"
                     className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      formData.status === SystemStatus.ACTIVE ? 'translate-x-4' : 'translate-x-0'
+                      form.watch('status') === SystemStatus.ACTIVE
+                        ? 'translate-x-4'
+                        : 'translate-x-0'
                     }`}
                   />
                 </button>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-white">
-                    {formData.status === SystemStatus.ACTIVE ? 'Active' : 'Inactive'}
+                    {form.watch('status') === SystemStatus.ACTIVE ? 'Active' : 'Inactive'}
                   </span>
                   <span className="text-xs text-neutral-400">
                     Inactive repositories are hidden from public view.
@@ -355,7 +337,7 @@ export function RepositoryFormDialog({
             type="button"
             variant="ghost"
             onClick={onClose}
-            disabled={isSubmitting}
+            disabled={form.formState.isSubmitting}
             className="text-neutral-300 hover:text-white hover:bg-white/5"
           >
             Cancel
@@ -365,10 +347,12 @@ export function RepositoryFormDialog({
             type="submit"
             className="bg-blue-600 hover:bg-blue-500 text-white border-0 shadow-lg shadow-blue-500/20 px-6"
             disabled={
-              isSubmitting || (mode === 'create' && isNameValid === false) || !formData.repoName
+              form.formState.isSubmitting ||
+              (mode === 'create' && isNameValid === false) ||
+              !form.watch('repoName')
             }
           >
-            {isSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+            {form.formState.isSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
             {mode === 'create' ? 'Create Repository' : 'Save Changes'}
           </Button>
         </div>

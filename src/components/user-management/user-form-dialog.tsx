@@ -1,16 +1,14 @@
-import { useState, useEffect } from 'react';
+'use client';
+
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { X, Loader2 } from 'lucide-react';
 import { User } from '@/services/user-management-service';
 import { Input } from '@/components/input';
 import { Button } from '@/components/button';
-import {
-  SystemCodeTypes,
-  SystemStatus,
-  SystemSex,
-  SystemEmployeeStatus,
-  getCodesByType,
-} from '@/config/fixcode';
-import { useValidateUserCode } from '@/hooks/use-user-management';
+import { SystemCodeTypes, SystemSex, SystemEmployeeStatus, getCodesByType } from '@/config/fixcode';
+import { useValidateUserCode, userFormSchema, UserFormValues } from '@/hooks/use-user-management';
 
 interface UserFormDialogProps {
   open: boolean;
@@ -27,29 +25,53 @@ export function UserFormDialog({
   onClose,
   onSubmit,
 }: UserFormDialogProps) {
-  const [formData, setFormData] = useState<Partial<User>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const form = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema),
+    defaultValues: {
+      userCode: '',
+      userName: '',
+      password: '',
+      sex: SystemSex.UNKNOWN,
+      mobile: '',
+      phone: '',
+      email: '',
+      userStatus: SystemEmployeeStatus.ON_JOB,
+    },
+  });
 
-  // Code validation hook
+  // NOTE: Async uniqueness check — runs via debounced query in the hook
   const { data: isCodeValid, isLoading: checkingCode } = useValidateUserCode(
-    formData.userCode || ''
+    form.watch('userCode') || ''
   );
 
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
       if (mode === 'edit' && initialData) {
-        setFormData({ ...initialData });
+        form.reset({
+          userCode: initialData.userCode ?? '',
+          userName: initialData.userName ?? '',
+          password: '',
+          sex: initialData.sex ?? SystemSex.UNKNOWN,
+          mobile: initialData.mobile ?? '',
+          phone: initialData.phone ?? '',
+          email: initialData.email ?? '',
+          userStatus: initialData.userStatus ?? SystemEmployeeStatus.ON_JOB,
+        });
       } else {
-        setFormData({
-          userStatus: SystemEmployeeStatus.ON_JOB, // Default On Job
-          sex: SystemSex.UNKNOWN, // Default Unknown
+        form.reset({
+          userCode: '',
+          userName: '',
+          password: '',
+          sex: SystemSex.UNKNOWN,
+          mobile: '',
+          phone: '',
+          email: '',
+          userStatus: SystemEmployeeStatus.ON_JOB,
         });
       }
-      setErrors({});
     }
-  }, [open, mode, initialData]);
+  }, [open, mode, initialData, form]);
 
   // Prevent scrolling when open
   useEffect(() => {
@@ -65,39 +87,37 @@ export function UserFormDialog({
 
   if (!open) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validation
-    const newErrors: Record<string, string> = {};
-    if (!formData.userCode?.trim()) newErrors.userCode = 'User Code is required';
-    if (!formData.userName?.trim()) newErrors.userName = 'User Name is required';
-    if (formData.userStatus === undefined) newErrors.userStatus = 'Status is required';
-
-    // Password validation: required for create, optional for edit
-    if (mode === 'create' && !formData.password?.trim()) {
-      newErrors.password = 'Initial Password is required';
+  const handleFormSubmit = async (data: UserFormValues) => {
+    // Mode-aware password validation: required for create, optional for edit
+    if (mode === 'create' && !data.password?.trim()) {
+      form.setError('password', { message: 'Initial Password is required' });
+      return;
     }
 
-    // Check uniqueness for Create mode
-    if (mode === 'create' && formData.userCode && isCodeValid === false) {
-      newErrors.userCode = 'User Code already exists';
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    // Async uniqueness validation for create mode
+    if (mode === 'create' && isCodeValid === false) {
+      form.setError('userCode', { message: 'User Code already exists' });
       return;
     }
 
     try {
-      setIsSubmitting(true);
-      await onSubmit(formData as User);
+      // NOTE: Spread initialData to preserve fields not in the form schema
+      // (e.g. userId, avatar, userType) that the backend expects
+      const userPayload: User = {
+        ...(initialData ?? {}),
+        userCode: data.userCode,
+        userName: data.userName,
+        sex: data.sex,
+        mobile: data.mobile,
+        phone: data.phone,
+        email: data.email || undefined,
+        userStatus: data.userStatus,
+        ...(data.password ? { password: data.password } : {}),
+      };
+      await onSubmit(userPayload);
       onClose();
     } catch (error) {
       console.error('Failed to submit user:', error);
-      // Ideally show toast error here
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -119,7 +139,7 @@ export function UserFormDialog({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <form id="user-form" onSubmit={handleSubmit} className="space-y-6">
+          <form id="user-form" onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
             {/* Row 1: Code & Name */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -128,13 +148,9 @@ export function UserFormDialog({
                 </label>
                 <div className="relative">
                   <Input
-                    value={formData.userCode || ''}
-                    onChange={(e) => {
-                      setFormData({ ...formData, userCode: e.target.value });
-                      setErrors({ ...errors, userCode: '' });
-                    }}
+                    {...form.register('userCode')}
                     disabled={mode === 'edit'}
-                    className={`${errors.userCode ? 'border-red-500/50' : ''}`}
+                    className={`${form.formState.errors.userCode ? 'border-red-500/50' : ''}`}
                   />
                   {checkingCode && (
                     <div className="absolute right-3 top-2.5">
@@ -142,11 +158,13 @@ export function UserFormDialog({
                     </div>
                   )}
                 </div>
-                {errors.userCode && <p className="text-xs text-red-400">{errors.userCode}</p>}
+                {form.formState.errors.userCode && (
+                  <p className="text-xs text-red-400">{form.formState.errors.userCode.message}</p>
+                )}
                 {mode === 'create' &&
-                  formData.userCode &&
+                  form.watch('userCode') &&
                   isCodeValid === false &&
-                  !errors.userCode && (
+                  !form.formState.errors.userCode && (
                     <p className="text-xs text-red-400">User Code already exists</p>
                   )}
               </div>
@@ -156,11 +174,12 @@ export function UserFormDialog({
                   User Name <span className="text-red-400">*</span>
                 </label>
                 <Input
-                  value={formData.userName || ''}
-                  onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
-                  className={errors.userName ? 'border-red-500/50' : ''}
+                  {...form.register('userName')}
+                  className={form.formState.errors.userName ? 'border-red-500/50' : ''}
                 />
-                {errors.userName && <p className="text-xs text-red-400">{errors.userName}</p>}
+                {form.formState.errors.userName && (
+                  <p className="text-xs text-red-400">{form.formState.errors.userName.message}</p>
+                )}
               </div>
             </div>
 
@@ -169,8 +188,7 @@ export function UserFormDialog({
               <div className="space-y-2">
                 <label className="text-sm font-medium text-neutral-300">Sex</label>
                 <select
-                  value={formData.sex}
-                  onChange={(e) => setFormData({ ...formData, sex: Number(e.target.value) })}
+                  {...form.register('sex', { valueAsNumber: true })}
                   className="flex h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                   {sexOptions.map((opt) => (
@@ -186,8 +204,7 @@ export function UserFormDialog({
                   Status <span className="text-red-400">*</span>
                 </label>
                 <select
-                  value={formData.userStatus}
-                  onChange={(e) => setFormData({ ...formData, userStatus: Number(e.target.value) })}
+                  {...form.register('userStatus', { valueAsNumber: true })}
                   className="flex h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                   {statusOptions.map((opt) => (
@@ -203,19 +220,11 @@ export function UserFormDialog({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-neutral-300">Mobile</label>
-                <Input
-                  value={formData.mobile || ''}
-                  onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                  placeholder="Mobile number"
-                />
+                <Input {...form.register('mobile')} placeholder="Mobile number" />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-neutral-300">Phone</label>
-                <Input
-                  value={formData.phone || ''}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="Telephone"
-                />
+                <Input {...form.register('phone')} placeholder="Telephone" />
               </div>
             </div>
 
@@ -223,10 +232,13 @@ export function UserFormDialog({
               <label className="text-sm font-medium text-neutral-300">Email</label>
               <Input
                 type="email"
-                value={formData.email || ''}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                {...form.register('email')}
                 placeholder="email@example.com"
+                className={form.formState.errors.email ? 'border-red-500/50' : ''}
               />
+              {form.formState.errors.email && (
+                <p className="text-xs text-red-400">{form.formState.errors.email.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -236,19 +248,17 @@ export function UserFormDialog({
               </label>
               <Input
                 type="password"
-                value={formData.password || ''}
-                onChange={(e) => {
-                  setFormData({ ...formData, password: e.target.value });
-                  setErrors({ ...errors, password: '' });
-                }}
+                {...form.register('password')}
                 placeholder={
                   mode === 'create'
                     ? 'Enter initial password'
                     : 'Leave empty to keep current password'
                 }
-                className={errors.password ? 'border-red-500/50' : ''}
+                className={form.formState.errors.password ? 'border-red-500/50' : ''}
               />
-              {errors.password && <p className="text-xs text-red-400">{errors.password}</p>}
+              {form.formState.errors.password && (
+                <p className="text-xs text-red-400">{form.formState.errors.password.message}</p>
+              )}
               {mode === 'edit' && (
                 <p className="text-xs text-neutral-500">
                   Leave empty if you don&apos;t want to change the password
@@ -260,16 +270,21 @@ export function UserFormDialog({
 
         {/* Footer */}
         <div className="flex items-center justify-end px-6 py-4 border-t border-white/10 gap-3 bg-white/5">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+            disabled={form.formState.isSubmitting}
+          >
             Cancel
           </Button>
           <Button
             form="user-form"
             type="submit"
             variant="default"
-            disabled={isSubmitting || (mode === 'create' && isCodeValid === false)}
+            disabled={form.formState.isSubmitting || (mode === 'create' && isCodeValid === false)}
           >
-            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            {form.formState.isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             {mode === 'create' ? 'Create User' : 'Save Changes'}
           </Button>
         </div>

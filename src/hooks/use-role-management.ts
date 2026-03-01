@@ -1,11 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { z } from 'zod';
 import {
   roleManagementService,
   RoleFilter,
   PageParams,
   Role,
 } from '@/services/role-management-service';
+
+// ─── Zod Schema ───────────────────────────────────────────────────────────────
+
+export const roleFormSchema = z.object({
+  roleCode: z.string().min(1, 'Role Code is required'),
+  roleName: z.string().min(1, 'Role Name is required'),
+  roleStatus: z.number(),
+});
+
+export type RoleFormValues = z.infer<typeof roleFormSchema>;
+
+// ─── Query Keys ───────────────────────────────────────────────────────────────
 
 export const ROLE_QUERY_KEYS = {
   all: ['roles'] as const,

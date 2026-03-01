@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { Plus, Search, Pencil, Trash2, Folder } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Search, Pencil, Trash2, Folder, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { repositoryService, RepositoryFilter } from '@/services/repository-service';
-import { userManagementService, User } from '@/services/user-management-service';
+import { RepositoryFilter } from '@/services/repository-service';
 import { RepoDTO } from '@/types/backend-types';
 import { SystemStatus, getCodesByType, SystemCodeTypes } from '@/config/fixcode';
 
@@ -14,6 +13,14 @@ import { Input } from '@/components/input';
 import { PaginationTable, type ColumnDef } from '@/components/common/pagination-table';
 import { RepositoryFormDialog } from '@/components/repository-management/repository-form-dialog';
 import { DeleteConfirmDialog } from '@/components/common/delete-confirm-dialog';
+
+import {
+  useRepositoryList,
+  useCreateRepository,
+  useUpdateRepository,
+  useDeleteRepository,
+  useUserListForSelect,
+} from '@/hooks/use-repository';
 
 // ─── Avatar helpers (moved from repository-table.tsx) ────────────────────────
 
@@ -77,11 +84,6 @@ function AvatarStack({ names }: { names: string[] }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function RepositoryManagementPage() {
-  const [data, setData] = useState<RepoDTO[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
-
   // Pagination & Filter State
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -96,42 +98,18 @@ export default function RepositoryManagementPage() {
   // Delete Dialog State
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [repoToDelete, setRepoToDelete] = useState<RepoDTO | undefined>();
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  // NOTE: getUserList returns all active users via a dedicated non-paginated endpoint,
-  // avoiding the overhead of the paginated API with an artificially large page size.
-  const fetchUsers = useCallback(async () => {
-    try {
-      const users = await userManagementService.getUserList();
-      setUsers(users);
-    } catch (e) {
-      console.error('Failed to fetch users', e);
-    }
-  }, []);
+  // ─── React Query hooks ────────────────────────────────────────────────────
+  const { data, isLoading, refetch } = useRepositoryList(filter, { page, pageSize });
+  const { data: users = [] } = useUserListForSelect();
+  const createRepository = useCreateRepository();
+  const updateRepository = useUpdateRepository();
+  const deleteRepository = useDeleteRepository();
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await repositoryService.getRepositories(filter, { page, pageSize });
-      setData(res.records || []);
-      setTotal(res.totalRecords || 0);
-    } catch (error) {
-      console.error('Failed to fetch repositories:', error);
-      toast.error('Failed to load repositories');
-    } finally {
-      setLoading(false);
-    }
-  }, [filter, page, pageSize]);
+  const records = data?.records ?? [];
+  const total = data?.totalRecords ?? 0;
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-
+  // ─── Handlers ─────────────────────────────────────────────────────────────
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,32 +147,27 @@ export default function RepositoryManagementPage() {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!repoToDelete) return;
+    if (!repoToDelete?.repoId) return;
     try {
-      setIsDeleting(true);
-      await repositoryService.deleteRepository(repoToDelete.repoId!);
+      await deleteRepository.mutateAsync(repoToDelete.repoId);
       toast.success('Repository deleted successfully');
       setIsDeleteDialogOpen(false);
       setRepoToDelete(undefined);
-      fetchData();
     } catch (error) {
       console.error('Failed to delete repository:', error);
       toast.error('Failed to delete repository');
-    } finally {
-      setIsDeleting(false);
     }
   };
 
   const handleFormSubmit = async (repo: RepoDTO) => {
     try {
       if (dialogMode === 'create') {
-        await repositoryService.createRepository(repo);
+        await createRepository.mutateAsync(repo);
         toast.success('Repository created successfully');
       } else {
-        await repositoryService.updateRepository(repo);
+        await updateRepository.mutateAsync(repo);
         toast.success('Repository updated successfully');
       }
-      fetchData();
     } catch (error) {
       console.error('Form submission failed:', error);
       throw error;
@@ -317,90 +290,104 @@ export default function RepositoryManagementPage() {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-[#0d1117] min-h-screen">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-6 border-b border-white/5">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">API Repositories</h1>
-          <p className="text-sm text-neutral-400 mt-1">
-            Manage and organize your API collections and services.
-          </p>
+          <p className="text-neutral-400">Manage and organize your API collections and services.</p>
         </div>
-        <Button onClick={handleCreate} className="bg-blue-600 text-white hover:bg-blue-700 border-transparent">
+        <Button
+          onClick={handleCreate}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Create Repository
         </Button>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 p-6 flex flex-col gap-6">
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-4 bg-[#14181d] p-4 rounded-lg border border-white/10">
-          <form onSubmit={handleSearch} className="flex flex-1 min-w-[300px] gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-              <Input
-                placeholder="Search repositories..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9 bg-[#0d1117] border-white/10 text-white w-full h-10"
-              />
-            </div>
-
-            <select
-              value={filter.ownerId || ''}
-              onChange={handleOwnerChange}
-              className="h-10 min-w-[160px] rounded-md border border-white/10 bg-[#0d1117] px-3 text-sm text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
-            >
-              <option value="">All Owners</option>
-              {users.map((u) => (
-                <option key={u.userId} value={u.userId}>
-                  {u.userName || u.userCode}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={filter.status || ''}
-              onChange={handleStatusChange}
-              className="h-10 min-w-[160px] rounded-md border border-white/10 bg-[#0d1117] px-3 text-sm text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
-            >
-              <option value="">All Status</option>
-              {statusOptions.map((opt) => (
-                <option key={opt.code} value={opt.code}>
-                  {opt.code_desc}
-                </option>
-              ))}
-            </select>
-
-            <Button
-              type="submit"
-              className="px-6 h-10 bg-blue-600 hover:bg-blue-700 text-white border-transparent"
-            >
-              <Search className="w-4 h-4 mr-2" />
-              Search
-            </Button>
-          </form>
+      {/* Filters */}
+      <form
+        onSubmit={handleSearch}
+        className="flex flex-wrap items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-lg backdrop-blur-sm"
+      >
+        <div className="flex-1 min-w-[300px]">
+          <Input
+            placeholder="Search repositories..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="bg-black/20 border-white/10 focus:ring-primary/50"
+          />
         </div>
 
-        {/* PaginationTable replaces RepositoryTable + inline pagination */}
-        <PaginationTable<RepoDTO>
-          data={data}
-          columns={columns}
-          isLoading={loading}
-          page={page}
-          pageSize={pageSize}
-          total={total}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPage(1);
-          }}
-          query={fetchData}
-          rowKey={(repo) => repo.repoId ?? 0}
-          emptyText="No repositories found"
-        />
-      </div>
+        <div className="w-[180px]">
+          <select
+            value={filter.ownerId || ''}
+            onChange={handleOwnerChange}
+            className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          >
+            <option value="" className="bg-neutral-900 text-white">All Owners</option>
+            {users.map((u) => (
+              <option key={u.userId} value={u.userId} className="bg-neutral-900 text-white">
+                {u.userName || u.userCode}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="w-[180px]">
+          <select
+            value={filter.status || ''}
+            onChange={handleStatusChange}
+            className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          >
+            <option value="" className="bg-neutral-900 text-white">All Status</option>
+            {statusOptions.map((opt) => (
+              <option key={opt.code} value={opt.code} className="bg-neutral-900 text-white">
+                {opt.code_desc}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button type="submit" variant="default" className="w-[100px]">
+            <Search className="w-4 h-4 mr-2" />
+            Search
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setSearchInput('');
+              setFilter({ status: undefined, ownerId: undefined });
+              setPage(1);
+            }}
+            className="w-[100px] border-white/10 text-white hover:bg-white/10 hover:text-white"
+          >
+            <X className="w-4 h-4 mr-2" />
+            Reset
+          </Button>
+        </div>
+      </form>
+
+      {/* PaginationTable replaces RepositoryTable + inline pagination */}
+      <PaginationTable<RepoDTO>
+        data={records}
+        columns={columns}
+        isLoading={isLoading}
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
+        query={() => refetch()}
+        rowKey={(repo) => repo.repoId ?? 0}
+        emptyText="No repositories found"
+      />
 
       <RepositoryFormDialog
         open={isDialogOpen}
@@ -423,7 +410,7 @@ export default function RepositoryManagementPage() {
           ) : null
         }
         confirmLabel="Delete Repository"
-        isDeleting={isDeleting}
+        isDeleting={deleteRepository.isPending}
         onClose={() => {
           setIsDeleteDialogOpen(false);
           setRepoToDelete(undefined);

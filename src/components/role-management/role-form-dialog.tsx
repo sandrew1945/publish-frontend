@@ -1,10 +1,14 @@
-import { useState, useEffect } from 'react';
+'use client';
+
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { X, Loader2 } from 'lucide-react';
 import { Role } from '@/services/role-management-service';
 import { Input } from '@/components/input';
 import { Button } from '@/components/button';
 import { SystemCodeTypes, SystemStatus, getCodesByType } from '@/config/fixcode';
-import { useValidateRoleCode } from '@/hooks/use-role-management';
+import { useValidateRoleCode, roleFormSchema, RoleFormValues } from '@/hooks/use-role-management';
 
 interface RoleFormDialogProps {
   open: boolean;
@@ -21,28 +25,38 @@ export function RoleFormDialog({
   onClose,
   onSubmit,
 }: RoleFormDialogProps) {
-  const [formData, setFormData] = useState<Partial<Role>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const form = useForm<RoleFormValues>({
+    resolver: zodResolver(roleFormSchema),
+    defaultValues: {
+      roleCode: '',
+      roleName: '',
+      roleStatus: SystemStatus.ACTIVE,
+    },
+  });
 
-  // Code validation hook
+  // NOTE: Async uniqueness check — runs via debounced query in the hook
   const { data: isCodeValid, isLoading: checkingCode } = useValidateRoleCode(
-    formData.roleCode || ''
+    form.watch('roleCode') || ''
   );
 
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
       if (mode === 'edit' && initialData) {
-        setFormData({ ...initialData });
+        form.reset({
+          roleCode: initialData.roleCode ?? '',
+          roleName: initialData.roleName ?? '',
+          roleStatus: initialData.roleStatus ?? SystemStatus.ACTIVE,
+        });
       } else {
-        setFormData({
-          roleStatus: SystemStatus.ACTIVE, // Default Active
+        form.reset({
+          roleCode: '',
+          roleName: '',
+          roleStatus: SystemStatus.ACTIVE,
         });
       }
-      setErrors({});
     }
-  }, [open, mode, initialData]);
+  }, [open, mode, initialData, form]);
 
   // Prevent scrolling when open
   useEffect(() => {
@@ -58,33 +72,26 @@ export function RoleFormDialog({
 
   if (!open) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validation
-    const newErrors: Record<string, string> = {};
-    if (!formData.roleCode?.trim()) newErrors.roleCode = 'Role Code is required';
-    if (!formData.roleName?.trim()) newErrors.roleName = 'Role Name is required';
-    if (formData.roleStatus === undefined) newErrors.roleStatus = 'Status is required';
-
-    // Check uniqueness for Create mode
-    if (mode === 'create' && formData.roleCode && isCodeValid === false) {
-      newErrors.roleCode = 'Role Code already exists';
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+  const handleFormSubmit = async (data: RoleFormValues) => {
+    // Async uniqueness validation for create mode
+    if (mode === 'create' && isCodeValid === false) {
+      form.setError('roleCode', { message: 'Role Code already exists' });
       return;
     }
 
     try {
-      setIsSubmitting(true);
-      await onSubmit(formData as Role);
+      // NOTE: Spread initialData to preserve fields not in the form schema
+      // (e.g. roleId, createBy, createDate) that the backend expects
+      const rolePayload: Role = {
+        ...(initialData ?? {}),
+        roleCode: data.roleCode,
+        roleName: data.roleName,
+        roleStatus: data.roleStatus,
+      };
+      await onSubmit(rolePayload);
       onClose();
     } catch (error) {
       console.error('Failed to submit role:', error);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -105,20 +112,16 @@ export function RoleFormDialog({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <form id="role-form" onSubmit={handleSubmit} className="space-y-6">
+          <form id="role-form" onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-neutral-300">
                 Role Code <span className="text-red-400">*</span>
               </label>
               <div className="relative">
                 <Input
-                  value={formData.roleCode || ''}
-                  onChange={(e) => {
-                    setFormData({ ...formData, roleCode: e.target.value });
-                    setErrors({ ...errors, roleCode: '' });
-                  }}
+                  {...form.register('roleCode')}
                   disabled={mode === 'edit'}
-                  className={`${errors.roleCode ? 'border-red-500/50' : ''}`}
+                  className={`${form.formState.errors.roleCode ? 'border-red-500/50' : ''}`}
                 />
                 {checkingCode && (
                   <div className="absolute right-3 top-2.5">
@@ -126,11 +129,13 @@ export function RoleFormDialog({
                   </div>
                 )}
               </div>
-              {errors.roleCode && <p className="text-xs text-red-400">{errors.roleCode}</p>}
+              {form.formState.errors.roleCode && (
+                <p className="text-xs text-red-400">{form.formState.errors.roleCode.message}</p>
+              )}
               {mode === 'create' &&
-                formData.roleCode &&
+                form.watch('roleCode') &&
                 isCodeValid === false &&
-                !errors.roleCode && (
+                !form.formState.errors.roleCode && (
                   <p className="text-xs text-red-400">Role Code already exists</p>
                 )}
             </div>
@@ -140,11 +145,12 @@ export function RoleFormDialog({
                 Role Name <span className="text-red-400">*</span>
               </label>
               <Input
-                value={formData.roleName || ''}
-                onChange={(e) => setFormData({ ...formData, roleName: e.target.value })}
-                className={errors.roleName ? 'border-red-500/50' : ''}
+                {...form.register('roleName')}
+                className={form.formState.errors.roleName ? 'border-red-500/50' : ''}
               />
-              {errors.roleName && <p className="text-xs text-red-400">{errors.roleName}</p>}
+              {form.formState.errors.roleName && (
+                <p className="text-xs text-red-400">{form.formState.errors.roleName.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -152,8 +158,7 @@ export function RoleFormDialog({
                 Status <span className="text-red-400">*</span>
               </label>
               <select
-                value={formData.roleStatus}
-                onChange={(e) => setFormData({ ...formData, roleStatus: Number(e.target.value) })}
+                {...form.register('roleStatus', { valueAsNumber: true })}
                 className="flex h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 {statusOptions.map((opt) => (
@@ -168,16 +173,21 @@ export function RoleFormDialog({
 
         {/* Footer */}
         <div className="flex items-center justify-end px-6 py-4 border-t border-white/10 gap-3 bg-white/5">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+            disabled={form.formState.isSubmitting}
+          >
             Cancel
           </Button>
           <Button
             form="role-form"
             type="submit"
             variant="default"
-            disabled={isSubmitting || (mode === 'create' && isCodeValid === false)}
+            disabled={form.formState.isSubmitting || (mode === 'create' && isCodeValid === false)}
           >
-            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            {form.formState.isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             {mode === 'create' ? 'Create Role' : 'Save Changes'}
           </Button>
         </div>
