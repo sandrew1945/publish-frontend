@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/button';
 import { RoleFilterBar } from './role-filter-bar';
-import { RoleTable } from './role-table';
 import { RoleFormDialog } from './role-form-dialog';
 import { DeleteConfirmDialog } from '@/components/common/delete-confirm-dialog';
 import { AssignMenuDialog } from './assign-menu-dialog';
+import { PaginationTable, type ColumnDef } from '@/components/common/pagination-table';
+import { RoleStatusBadge } from './role-status-badge';
+import { Edit2, Shield, Trash2 } from 'lucide-react';
 import {
   useRoleList,
   useCreateRole,
@@ -107,6 +109,76 @@ export function RoleListPage() {
     }
   };
 
+  const columns = React.useMemo<ColumnDef<Role>[]>(
+    () => [
+      {
+        type: 'data',
+        name: 'roleCode',
+        label: 'Role Code',
+        field: 'roleCode',
+      },
+      {
+        type: 'data',
+        name: 'roleName',
+        label: 'Role Name',
+        field: 'roleName',
+      },
+      {
+        type: 'time',
+        name: 'createDate',
+        label: 'Create Time',
+        field: 'createDate',
+      },
+      {
+        type: 'slot',
+        name: 'status',
+        label: 'Status',
+        field: 'roleStatus',
+        render: (role) => <RoleStatusBadge status={role.roleStatus} />,
+      },
+      {
+        type: 'slot',
+        name: 'actions',
+        label: 'Actions',
+        width: '15%',
+        align: 'right',
+        field: '',
+        render: (role) => (
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-8 h-8 text-neutral-400 bg-white/5 border border-white/5 hover:bg-white/10 hover:text-white rounded-md"
+              onClick={() => handleAssignMenu(role)}
+              title="Assign Menu"
+            >
+              <Shield className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-8 h-8 text-neutral-400 bg-white/5 border border-white/5 hover:bg-white/10 hover:text-white rounded-md"
+              onClick={() => handleEdit(role)}
+              title="Edit Role"
+            >
+              <Edit2 className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-8 h-8 text-neutral-400 bg-white/5 border border-white/5 hover:bg-white/10 hover:text-white rounded-md"
+              onClick={() => handleDeleteClick(role)}
+              title="Delete Role"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    []
+  );
+
   const totalPages = data ? Math.ceil(data.total / pageSize) : 0;
 
   return (
@@ -130,51 +202,16 @@ export function RoleListPage() {
       <RoleFilterBar onSearch={handleSearch} isLoading={isLoading} />
 
       {/* Table */}
-      <RoleTable
-        roles={data?.records || []}
+      <PaginationTable
+        columns={columns}
+        data={data?.records || []}
         isLoading={isLoading}
-        onEdit={handleEdit}
-        onDelete={handleDeleteClick}
-        onAssignMenu={handleAssignMenu}
+        page={page}
+        pageSize={pageSize}
+        total={data?.total || 0}
+        onPageChange={setPage}
+        onPageSizeChange={() => { }} // Not supported in this UI
       />
-
-      {/* Pagination */}
-      {data && data.total > 0 && (
-        <div className="flex items-center justify-between px-2">
-          <div className="text-sm text-neutral-400">
-            Showing <span className="font-medium text-white">{(page - 1) * pageSize + 1}</span> to{' '}
-            <span className="font-medium text-white">{Math.min(page * pageSize, data.total)}</span>{' '}
-            of <span className="font-medium text-white">{data.total}</span> roles
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1 || isLoading}
-              className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Previous
-            </Button>
-            <div className="flex items-center gap-1">
-              <span className="text-sm text-white px-2">
-                Page {page} of {totalPages || 1}
-              </span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages || isLoading}
-              className="border-white/10 text-white hover:bg-white/10 disabled:opacity-50"
-            >
-              Next
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Dialogs */}
       <RoleFormDialog
@@ -192,8 +229,8 @@ export function RoleListPage() {
           roleToDelete ? (
             <>
               Are you sure you want to delete role{' '}
-              <span className="text-white font-medium">{roleToDelete.roleName}</span> ({roleToDelete.roleCode})? This
-              action cannot be undone immediately.
+              <span className="text-white font-medium">{roleToDelete.roleName}</span> (
+              {roleToDelete.roleCode})? This action cannot be undone immediately.
             </>
           ) : null
         }

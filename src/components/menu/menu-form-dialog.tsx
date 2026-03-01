@@ -114,7 +114,9 @@ export function MenuFormDialog({ open, onOpenChange, parent, editItem }: MenuFor
           </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Name<span className="text-red-400">*</span></Label>
+              <Label htmlFor="name">
+                Name<span className="text-red-400">*</span>
+              </Label>
               <Input id="name" {...form.register('name')} placeholder="Menu Name" />
               {form.formState.errors.name && (
                 <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>

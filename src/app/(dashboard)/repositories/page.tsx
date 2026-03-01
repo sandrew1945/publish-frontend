@@ -29,7 +29,13 @@ const getInitials = (name?: string) => {
   return name.slice(0, 2).toUpperCase();
 };
 
-const AVATAR_COLORS = ['bg-blue-600', 'bg-emerald-600', 'bg-amber-600', 'bg-purple-600', 'bg-rose-600'] as const;
+const AVATAR_COLORS = [
+  'bg-blue-600',
+  'bg-emerald-600',
+  'bg-amber-600',
+  'bg-purple-600',
+  'bg-rose-600',
+] as const;
 
 function Avatar({
   name,
@@ -184,14 +190,14 @@ export default function RepositoryManagementPage() {
       label: 'Repository Name',
       field: 'repoName',
       width: '20%',
-      type: 'data'
+      type: 'data',
     },
     {
       name: 'repoDesc',
       label: 'Description',
       field: 'repoDesc',
       width: '25%',
-      type: 'data'
+      type: 'data',
     },
     {
       name: 'owner',
@@ -220,7 +226,10 @@ export default function RepositoryManagementPage() {
       // NOTE: collaboratorNames is already returned by the API as a comma-separated string
       render: (repo) => {
         const names = repo.collaboratorNames
-          ? repo.collaboratorNames.split(',').map((n) => n.trim()).filter(Boolean)
+          ? repo.collaboratorNames
+              .split(',')
+              .map((n) => n.trim())
+              .filter(Boolean)
           : [];
         return <AvatarStack names={names} />;
       },
@@ -236,10 +245,11 @@ export default function RepositoryManagementPage() {
         const isActive = repo.status === SystemStatus.ACTIVE;
         return (
           <span
-            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium border ${isActive
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              : 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20'
-              }`}
+            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium border ${
+              isActive
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                : 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20'
+            }`}
           >
             <span
               className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isActive ? 'bg-emerald-500' : 'bg-neutral-500'}`}
@@ -326,7 +336,9 @@ export default function RepositoryManagementPage() {
             onChange={handleOwnerChange}
             className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
-            <option value="" className="bg-neutral-900 text-white">All Owners</option>
+            <option value="" className="bg-neutral-900 text-white">
+              All Owners
+            </option>
             {users.map((u) => (
               <option key={u.userId} value={u.userId} className="bg-neutral-900 text-white">
                 {u.userName || u.userCode}
@@ -341,7 +353,9 @@ export default function RepositoryManagementPage() {
             onChange={handleStatusChange}
             className="flex h-10 w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
-            <option value="" className="bg-neutral-900 text-white">All Status</option>
+            <option value="" className="bg-neutral-900 text-white">
+              All Status
+            </option>
             {statusOptions.map((opt) => (
               <option key={opt.code} value={opt.code} className="bg-neutral-900 text-white">
                 {opt.code_desc}

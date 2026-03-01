@@ -108,7 +108,8 @@ export default function MenuManagementPage() {
         description={
           selectedItem ? (
             <>
-              Are you sure you want to delete &ldquo;<span className="text-white font-medium">{selectedItem.name}</span>&rdquo;? This
+              Are you sure you want to delete &ldquo;
+              <span className="text-white font-medium">{selectedItem.name}</span>&rdquo;? This
               action cannot be undone.
               {selectedItem.children && selectedItem.children.length > 0 && (
                 <span className="block text-red-400 mt-2 font-semibold">
